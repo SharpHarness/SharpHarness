@@ -1,19 +1,26 @@
 # ADR-0003: Command Input and Event/Notification Output
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-10-19
+- **Decision authority:** Product owner, approved in architecture review on 2026-10-19
 
 ## Context
 
 A simple `RunAsync(prompt)` call does not sufficiently support CLI, TUI, future RPC, mid-turn steering, approval, streaming and recovery.
 
-## Proposal
+## Decision
 
-Expose `Submit(Command) → Receipt` and `Subscribe(cursor) → Notifications`. Commands are typed/versioned and idempotently correlated. Persist important event facts with per-Session Sequence; emit high-frequency text/progress deltas as independent ephemeral notifications. Streaming subscribers receive broadcast, not shared work-queue semantics. `SubmitAsync` cancellation affects only acceptance waiting, not already accepted Turn.
+Expose **Command input and Event/Notification output**: `Submit(Command) → Receipt` and `Subscribe(cursor) → Notifications`. Commands are typed, versioned, carry stable `CommandId` values, and require duplicate-command detection. A receipt confirms acceptance or explicit rejection, **not** Turn completion. Per ADR-0002, a new `StartTurn` while a Turn is active is rejected with `Busy` and does not affect that Turn.
+
+Separate output into **Durable facts** (e.g. `TurnStarted`, `ToolInvocationPrepared`, `ApprovalResolved`, `ToolCompleted`, `TurnCompleted`) and **Ephemeral notifications** (e.g. text deltas, progress). Durable facts have a monotonically increasing per-Session `Sequence`, support persistence and replay by cursor when a durable store is configured, and are not silently dropped. Ephemeral notifications are streamed without a guarantee of persistence or replay and must not masquerade as sequenced journal facts.
+
+Provide **broadcast subscriptions** with independent subscriber delivery, not multiple consumers competing for one queue. Each subscriber has its own cancellation and backpressure behavior; a slow observer must not consume another observer's messages. `SubmitAsync` cancellation only cancels submission/acceptance waiting, and does **not** implicitly interrupt an accepted Turn; use `InterruptTurn` to cancel execution. An explicit acknowledgement that the command was accepted is distinct from final execution completion.
+
+**Detailed contracts deferred:** exact DTO signatures, CommandId deduplication retention/restart scope and payload-conflict response, replay cursor format, notification buffering and backpressure settings, and durable write/acknowledgement ordering are to be specified and tested before M2 implementation. These details must not be invented by coding agents.
 
 ## Consequences / tests
 
-Supports UI decoupling and replayable history. Requires explicit consistency, backpressure and subscription cursor semantics. Test duplicate commands, event ordering, multiple subscribers, slow consumers and reconnect.
+Supports UI decoupling and replayable history. Requires explicit consistency, backpressure and subscription cursor semantics. Test duplicate commands (including conflicting payloads), correct receipt semantics, per-Session event ordering, multiple subscribers, slow consumers, cancellation of one subscriber and reconnect/replay. Integration with journal durability is reviewed under ADR-0005.
 
 ## Alternatives
 
