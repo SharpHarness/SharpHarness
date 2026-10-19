@@ -9,7 +9,7 @@
 | `IAgentRuntime` | Create/open Session, inject service set, honor lifecycle | Does not dictate UI or provider |
 | `IAgentSession` | Stable `SessionId`; submit command; subscribe; dispose | One active Turn, single state writer |
 | `AgentCommand` | Version, `CommandId`, `SessionId`, payload | `StartTurn`, `SteerTurn`, `InterruptTurn`, `ResolveApproval` |
-| `CommandReceipt` | Accepted/rejected, status, correlation/Turn ID if available | No implication of Turn completion |
+| `CommandReceipt` | Accepted/rejected, status, correlation/Turn ID if available | No implication of Turn completion; `StartTurn` during an active Turn MUST be rejected with `Busy` (ADR-0002) |
 | `AgentNotification` | Typed durable event or ephemeral stream item | Do not confuse with journal fact |
 | `AgentEventEnvelope` | SchemaVersion, SessionId, TurnId?, Sequence, EventId, CorrelationId?, timestamp, event | Sequence monotonic per Session |
 | `IAgentModelClient` | Stream normalized model responses; cancellation; declared capabilities | Model provider implementation injected |
@@ -35,7 +35,7 @@
 
 `SubmitAsync` cancellation only cancels the acceptance wait. `InterruptTurn` cancels running Turn. `SubscribeAsync` cancellation stops that subscriber, not the Session. `DisposeAsync` must document Drain/Cancel/Detach choice; **proposal**: default cancel active Turn with bounded cleanup and return when ownership is relinquished, not silently keep mutating tools running.
 
-Actor owns mutable Session state; asynchronous model/tool tasks return internal messages. Client listeners cannot mutate internal state by accessing Event objects. Payloads treated as immutable snapshots.
+Actor owns mutable Session state; asynchronous model/tool tasks return internal messages. Each Session allows only one active Turn; a second `StartTurn` returns `Busy` rather than queueing or mutating the running Turn (ADR-0002). Client listeners cannot mutate internal state by accessing Event objects. Payloads treated as immutable snapshots.
 
 ## 4. Serialization and compatibility
 
