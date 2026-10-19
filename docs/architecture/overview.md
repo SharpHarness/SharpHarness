@@ -1,6 +1,6 @@
 # SharpHarness Architecture Overview v0.1
 
-**Status:** Draft | **Owner decisions accepted:** General Agent Core + Coding Agent; Thin Kernel + Standard Runtime Services; ADR-0002 Session Actor; ADR-0003 Command/Event; ADR-0004 typed stage-specific extensibility.
+**Status:** Draft | **Owner decisions accepted:** General Agent Core + Coding Agent; Thin Kernel + Standard Runtime Services; ADR-0002 Session Actor; ADR-0003 Command/Event; ADR-0004 typed stage-specific extensibility; ADR-0005 SQLite-backed Journal + Optional Snapshots.
 
 ## 1. 产品目标
 
@@ -48,7 +48,7 @@ Hosts: CLI/TUI | Embedded .NET SDK | Future RPC/IDE
 1. 一个 Session 中只有一个逻辑状态写入者，同时最多一个活动 Turn。
 2. 一次工具调用的路径固定为 `resolve → schema validation → policy → approval (if required) → controlled execution → result`。
 3. 模型输出、工具参数、工具元数据、MCP 返回值均不可信；不得绕过审批。
-4. ToolStarted 未有可靠终态记录的副作用工具，恢复时为 Unknown，不可默认重放。
+4. 副作用工具在可信终态事实缺失时恢复为 Unknown，不可默认重放；默认本地存储采用 SQLite 的 Agent Journal + Optional Snapshot，工具启动前需确认前置事实已成功提交（ADR-0005）。
 5. 持久事实事件具有会话范围内单调序号、配置持久存储时可游标重放；Token Delta 作为非持久通知，不承诺重放。订阅者必须独立接收广播而非竞争同一队列（ADR-0003）。
 6. 每次模型请求具有可追踪的不可变上下文快照；压缩不能吞掉活跃约束。
 7. 任何任务都可以受取消与预算上限约束；终止状态必须明确可观察。
@@ -59,7 +59,7 @@ Hosts: CLI/TUI | Embedded .NET SDK | Future RPC/IDE
 - **M0 Documents**：架构、ADR、契约、验收标准获得产品负责人通过。
 - **M1 Bootstrap**：多项目解决方案、编译/测试、跨平台 CI 基础设施，不实现 Agent 行为。
 - **M2 Minimal Agent**：Fake Model 驱动一个完整 Turn 和工具循环，事件/取消/预算测试通过。
-- **M3 Coding Agent Alpha**：工作区、工具/策略、基础持久化、CLI，真实项目任务回归测试。
+- **M3 Coding Agent Alpha**：工作区、工具/策略、默认 SQLite SessionStore（WAL/FULL）及恢复、CLI，真实项目任务回归测试。M1 仅工程骨架，不要求生产级 SQLite；M2 可使用 Fake Store 测试 Runtime。
 
 每项里程碑单独批准开发任务，测试证据须可复现；模型真实调用仅作为集成验收补充。
 
@@ -69,3 +69,4 @@ Hosts: CLI/TUI | Embedded .NET SDK | Future RPC/IDE
 - 设计中显式记录兼容性、资源释放、错误分类、重试边界。
 - 不断言 OS Sandbox 已存在；仅完成 Policy 不等于安全沙箱。
 - 对外公共 API 在发布前需审查版本化策略。
+- SQLite 原生引擎通过跨平台 NuGet 运行时依赖发布，官方应用和适配器逻辑仍以 C# 实现；Native AOT 不是首版验收门槛。

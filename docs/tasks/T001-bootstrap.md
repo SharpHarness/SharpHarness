@@ -18,9 +18,9 @@ Create a clean .NET 10 Monorepo that builds and tests on Windows, Linux and macO
 
 - Use C# and .NET 10, central package/version management only when demonstrably useful.
 - Dependency rules per `docs/architecture/module-boundaries.md`. Core must **not** reference concrete implementation projects.
-- Public packaging/NuGet publishing, Native AOT, TUI framework, model SDK choice and external cloud credentials are out of scope.
+- Public packaging/NuGet publishing, Native AOT, TUI framework, model SDK choice, SQLite connection/schema implementation and external cloud credentials are out of scope. The approved SQLite persistence engine belongs to a later task; **do not add `Microsoft.Data.Sqlite` or native packages solely for the skeleton** unless separately approved.
 - No automatic code formatting or sweeping README/architecture rewrites beyond task scope.
-- Never create a PR containing unreviewed generated runtime stubs that pretend to implement real behavior.
+- Never create a PR containing unreviewed generated runtime stubs that pretend to implement real behavior. ADR-0005 requires `ISessionStore` to remain a Core-facing abstraction; T001 must not smuggle storage implementation into Core.
 
 ## Deliverables
 

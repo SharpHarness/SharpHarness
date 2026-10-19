@@ -10,7 +10,7 @@
 | `SharpHarness.Core` | Session/Turn 协调器、Agent Loop、命令队列、事件生命周期 | Anthropic/OpenAI SDK、Git、TUI、数据库实现 |
 | `SharpHarness.Models` | 模型客户端工厂、协议 Adapter、能力发现与差异处理 | Agent 决策、授权策略 |
 | `SharpHarness.Tools` | 通用 Tool Registry、执行编排标准实现 | 具体 Coding Agent 业务规则 |
-| `SharpHarness.Infrastructure` | Journal、文件系统、进程、平台服务的实现 | 模型 Loop、业务决策 |
+| `SharpHarness.Infrastructure` | 默认 SQLite SessionStore（`Microsoft.Data.Sqlite`）、Agent Journal/Snapshot、文件系统、进程及平台适配 | 模型 Loop、业务决策；将 SQLite 依赖泄漏到 Core |
 | `SharpHarness.Coding` | 编码 Profile、项目上下文、Git/Shell/File 工具、验证服务 | 模型协议和通用 Session Engine |
 | `SharpHarness.Cli` | composition root、命令行及初版 TUI | 自行实现 Agent Loop/Model Adapter |
 | `SharpHarness.Mcp` (future) | MCP SDK 的适配 | 重复实现 MCP 协议 |
@@ -18,11 +18,13 @@
 ## 依赖规则
 
 - `Abstractions` 仅依赖必要的 .NET 基础库，禁止引用其他 SharpHarness 工程。
-- `Core` 依赖 `Abstractions`，调用通过 DI 注入的接口；不得引用 `Models`、`Coding`、`Cli`、`Infrastructure`。
+- `Core` 依赖 `Abstractions`，调用通过 DI 注入的接口；不得引用 `Models`、`Coding`、`Cli`、`Infrastructure`、`Microsoft.Data.Sqlite` 或任何 Native SQLite 实现。
 - `Models`、`Tools`、`Infrastructure` 依赖 `Abstractions`；确实需要共同编排的能力由组合层连接，不得产生循环依赖。
 - `Coding` 可以使用 Core 和工具机制及其他适配实现，但不反向成为底层依赖。
 - `Cli` 是组装入口，可以引用具体实现；UI 不得修改 Core 的私有状态。
 - 示例、测试应用通过公开 API 访问核心，不依赖私有实现以规避验证。
+
+**ADR-0005 已批准：**初版生产级本地持久化 Adapter 采用 SQLite + WAL/FULL；SqlitePCLRaw/原生 SQLite 资源可作为 Infrastructure 的 NuGet 运行时依赖，CLI Composition Root 负责注册 Store。Core 的协议、事件及 Session 逻辑保持存储技术无关。Native AOT 在后续专门验证。
 
 ## 包边界判断原则
 

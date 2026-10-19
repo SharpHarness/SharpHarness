@@ -41,6 +41,11 @@
 | RT-024 | Busy StartTurn | Second StartTurn rejected Busy, no implicit queueing, current Turn unaffected |
 | RT-025 | Stage extension isolation and ordering | Context/Model/Tool/Event contracts cannot mutate unrelated stages or reorder mandatory gates; injectable services are replaceable |
 | RT-026 | Observer and journal failure boundaries | Telemetry observer failure can be isolated; durable journal failure cannot be silently ignored or treated as telemetry failure |
+| RT-027 | SQLite transaction atomicity | Journal fact, Session Sequence, CommandId dedup and related state/index changes are all committed together or none are; injected failures observed |
+| RT-028 | SQLite durability configuration | WAL enabled and verified, FULL synchronous applied/verified for writes; pre-tool durable intent confirmed before dispatch |
+| RT-029 | SQLite writer contention and failure | Bounded busy/lock behavior and disk failure reported; Session Actor remains responsive |
+| RT-030 | SQLite backup, restore, migration | Consistent WAL-aware backup/restore; snapshot+journal reconstruction; unknown schema version/corruption diagnosed |
+| RT-031 | SQLite native deployment matrix | Windows/Linux/macOS deployment loads native SQLite and performs real read/write/restart test without paid providers |
 
 ## 3. Evidence requirements
 
@@ -51,6 +56,6 @@ For each test: source commit SHA, OS/runtime, exact command, result summary, rel
 - **M0 documentation:** architecture and ADR approved, no contradictory lifecycle rules, task boundaries clear.
 - **M1 bootstrap:** correct project graph; build and trivial test suite run on all three OS; no unsupported claims of implementation.
 - **M2 runtime:** RT-001–RT-012 and RT-020–RT-026 pass; APIs reviewed.
-- **M3 coding:** RT-013–RT-019 and realistic temporary-repository end-to-end scenarios pass; known security limitations listed.
+- **M3 coding:** RT-013–RT-019 and RT-027–RT-031, plus realistic temporary-repository end-to-end scenarios, must pass for the first production-capable SQLite-backed Coding Agent; known security limitations listed. Process-kill tests do not equal hardware power-loss validation.
 
 Do not merge a change claiming a completed capability without matching test evidence. Manual inspection and CI status are different evidence types and must not be conflated.

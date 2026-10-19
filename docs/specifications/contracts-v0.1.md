@@ -21,9 +21,11 @@
 | `ToolResult` | Status, normalized content, error, truncation, side-effect state | Status may be Unknown |
 | `IPolicyEvaluator` | Policy verdict Allow/Deny/Ask + reason | ADR-0004: mandatory Tool-stage checkpoint, cannot be omitted/reordered; precise authorization remains ADR-0006 |
 | `IContextContributor` | Contribute prioritized context parts into builder | ADR-0004: typed stage-specific contract, no mutation of Session history; ordering/error policy TBD |
-| `ISessionStore` | Append/read durable facts, expected Sequence and snapshot | Append atomicity to be explicitly tested |
+| `ISessionStore` | Append/replay durable facts, optimistic expected Sequence, command deduplication and optional versioned snapshots | ADR-0005: semantics storage-agnostic; default local SQLite adapter, transactional consistency required |
 
 **ADR-0004 approved architecture constraints:** Core fixes execution phase boundaries, lifecycle and mandatory checkpoints; standard Context, Model, Tool and Event/Observability components are registered by explicit DI contracts. No universal `IMiddleware` or all-powerful Hook may wrap the Agent Loop. Telemetry observers may fail independently without hiding critical Journal failures. Public interfaces, DI lifetimes, ordering and error policies remain unapproved implementation details.
+
+**ADR-0005 accepted storage constraints:** `SharpHarness.Core` must remain SQLite-independent. Default first production-grade local adapter is `Microsoft.Data.Sqlite` using SQLite `journal_mode=WAL` and `synchronous=FULL`. Journal is append-only durable facts; optional Snapshots are coherent derived state with applied Sequence. Journal, version counter, command deduplication and related state/index updates must have documented atomicity. External tool actions are never part of an SQLite transaction; missing trustworthy terminal facts after possible execution imply `Unknown` and no blind retry. Table structure, connection policy, busy timeout, event-retention/compaction and precise transactional API remain pending detailed contract review.
 
 ## 2. Required result and state semantics
 
@@ -49,4 +51,4 @@ Actor owns mutable Session state; asynchronous model/tool tasks return internal 
 
 ## 5. Contract review gates before coding
 
-Decide final DTO types, JSON serializer strategy/AOT constraints, persistence consistency guarantees, event history replay API/cursor shape, duplicate CommandId retention and payload-conflict behavior, notification backpressure, `CommandReceipt` error taxonomy, extension metadata policy, DI registration/lifetimes, contributor ordering and stage-specific failure policies, and API versioning. Every decision must be documented before public NuGet publication.
+Decide final DTO types, JSON serializer strategy/AOT constraints, SQLite transaction boundaries/schema/constraints and verified WAL/FULL configuration, persistence consistency guarantees, event history replay API/cursor shape, duplicate CommandId retention and payload-conflict behavior, notification backpressure, native runtime packaging, busy/backup/migration policy, `CommandReceipt` error taxonomy, extension metadata policy, DI registration/lifetimes, contributor ordering and stage-specific failure policies, and API versioning. Every decision must be documented before public NuGet publication.
