@@ -1,0 +1,50 @@
+# Test Strategy and Acceptance Criteria v0.1
+
+**Status:** Draft. Architecture/review agent designs independent acceptance; Coding Agent implements tests and runtime. Reviewer executes tests when an executable environment is available; otherwise reports **Not Verified**, not Pass.
+
+## 1. Quality gates
+
+1. Spec/ADR compliance and dependency boundary check.
+2. `dotnet restore`, `dotnet build` with warnings-as-errors per approved task, `dotnet test` reproducible results.
+3. Deterministic unit tests with Scripted/Fake Model, Fake Tool, Fake Journal/Clock.
+4. Integration tests with temporary workspace and temporary Git repository; no secrets, internet or paid API needed.
+5. CI on Windows, Linux and macOS; optional real-provider smoke tests isolated from blocking PR workflow.
+6. Review explicitly assesses security, concurrency, recovery and compatibility, rather than counting coverage percentage alone.
+
+## 2. Required test matrix (M2/M3)
+
+| ID | Scenario | Expected acceptance evidence |
+| --- | --- | --- |
+| RT-001 | Model returns final answer | Exactly one terminal turn; expected events and message |
+| RT-002 | One tool call then final model answer | Tool result correlated, ordered, fed back once |
+| RT-003 | Multiple tool calls with out-of-order completion | Results ordered by CallIndex; no lost/crossed IDs |
+| RT-004 | Invalid JSON/tool name | No execution; structured tool/protocol error |
+| RT-005 | Policy deny or approval refuse | Executor not called, auditable rejection |
+| RT-006 | Waiting approval + user Interrupt | Interrupt handled despite blocked tool; terminal state |
+| RT-007 | Steer mid-execution | Constraint applied at next safe checkpoint only |
+| RT-008 | Model/provider timeout and 429 | Classified correctly; bounded retry, no looping |
+| RT-009 | Tool failure/output truncation | Explicit tool error/truncation, controlled continuation |
+| RT-010 | Token/step/time budget | Terminates with exact limit reason |
+| RT-011 | Two simultaneous Sessions | No state/message/event leakage between Sessions |
+| RT-012 | Event multi-subscriber + slow subscriber | Both observe durable facts, no competing consumers |
+| RT-013 | Journal write fails before modifying tool | No external modification starts |
+| RT-014 | Modification applied, terminal fact lost, then restore | Unknown detected; no automatic replay |
+| RT-015 | Snapshot + journal replay | Identical reconstructed facts/state and monotonic sequence |
+| RT-016 | Malicious tool output/prompt injection | Cannot override policy/system instructions |
+| RT-017 | Workspace path traversal/symlink escape | Disallowed operations rejected |
+| RT-018 | Cancellation of process tree | No unmanaged child process remains where platform permits; exceptions documented |
+| RT-019 | Serialize unknown event version | Explicit error/migration, no silent fallback |
+| RT-020 | Provider streaming incomplete ToolCall | Must not execute incomplete args |
+
+## 3. Evidence requirements
+
+For each test: source commit SHA, OS/runtime, exact command, result summary, relevant logs (sanitized), known untested cases. Test files should avoid timing-sensitive sleeps and external dependencies, use injected clock/transport where possible. PR review decision recorded as Pass / Changes Required / Rejected / Not Verified.
+
+## 4. Acceptance stages
+
+- **M0 documentation:** architecture and ADR approved, no contradictory lifecycle rules, task boundaries clear.
+- **M1 bootstrap:** correct project graph; build and trivial test suite run on all three OS; no unsupported claims of implementation.
+- **M2 runtime:** RT-001–RT-012 and RT-020 pass; APIs reviewed.
+- **M3 coding:** RT-013–RT-019 and realistic temporary-repository end-to-end scenarios pass; known security limitations listed.
+
+Do not merge a change claiming a completed capability without matching test evidence. Manual inspection and CI status are different evidence types and must not be conflated.

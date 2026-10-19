@@ -1,0 +1,40 @@
+# Module Boundaries v0.1
+
+**Status:** Draft. 名称表示逻辑职责；不要求第一轮就全部拆成独立可发布 NuGet 包。
+
+## 项目与职责
+
+| Project | 包含 | 禁止包含 |
+| --- | --- | --- |
+| `SharpHarness.Abstractions` | 公共模型、接口、版本化协议定义 | 具体 HTTP、文件系统、Shell、业务 Profile |
+| `SharpHarness.Core` | Session/Turn 协调器、Agent Loop、命令队列、事件生命周期 | Anthropic/OpenAI SDK、Git、TUI、数据库实现 |
+| `SharpHarness.Models` | 模型客户端工厂、协议 Adapter、能力发现与差异处理 | Agent 决策、授权策略 |
+| `SharpHarness.Tools` | 通用 Tool Registry、执行编排标准实现 | 具体 Coding Agent 业务规则 |
+| `SharpHarness.Infrastructure` | Journal、文件系统、进程、平台服务的实现 | 模型 Loop、业务决策 |
+| `SharpHarness.Coding` | 编码 Profile、项目上下文、Git/Shell/File 工具、验证服务 | 模型协议和通用 Session Engine |
+| `SharpHarness.Cli` | composition root、命令行及初版 TUI | 自行实现 Agent Loop/Model Adapter |
+| `SharpHarness.Mcp` (future) | MCP SDK 的适配 | 重复实现 MCP 协议 |
+
+## 依赖规则
+
+- `Abstractions` 仅依赖必要的 .NET 基础库，禁止引用其他 SharpHarness 工程。
+- `Core` 依赖 `Abstractions`，调用通过 DI 注入的接口；不得引用 `Models`、`Coding`、`Cli`、`Infrastructure`。
+- `Models`、`Tools`、`Infrastructure` 依赖 `Abstractions`；确实需要共同编排的能力由组合层连接，不得产生循环依赖。
+- `Coding` 可以使用 Core 和工具机制及其他适配实现，但不反向成为底层依赖。
+- `Cli` 是组装入口，可以引用具体实现；UI 不得修改 Core 的私有状态。
+- 示例、测试应用通过公开 API 访问核心，不依赖私有实现以规避验证。
+
+## 包边界判断原则
+
+先保证概念清晰、依赖无环；NuGet 的拆分和语义版本策略在 API 签名稳定后制定。不要为了“可扩展”创建空接口、万能 BaseAgent 或大型 ServiceLocator。
+
+## 扩展方式
+
+- 进程内托管组件：普通 .NET 模式，可直接 DI。
+- 进程外组件：MCP/RPC，隔离和进程生命周期单独治理。
+- Native AOT 不支持运行时任意加载普通托管程序集，未来需预编译注册或进程外扩展。
+- 扩展策略的执行顺序由 Core/标准服务固定，第三方不得重新排序安全关卡。
+
+## 代码 Review 准则
+
+出现任意一条就必须请求修改：`Core` 引用 Coding/CLI；模型响应结构强行绑定 Chat Completions；Session 状态多个写入者；工具绕开 Policy；所有模块以全局静态可变状态交换数据。

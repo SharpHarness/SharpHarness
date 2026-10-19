@@ -1,0 +1,54 @@
+# Session, Turn and Execution Protocol v0.1
+
+**Status:** Draft | Related: ADR-0002, ADR-0003.
+
+## 1. 生命周期定义
+
+- **Runtime**：装配 Provider/Tools/Services，创建或恢复 Session。
+- **Session**：多 Turn 的独立对话和配置边界，拥有命令 Mailbox、状态版本和事件游标。
+- **Turn**：一次用户任务的完整执行，从请求排队到完成/失败/中断。
+- **Step**：ContextBuild、ModelInvocation、ToolInvocation、Compaction 或 Verification 的独立执行单元。
+
+Session 不能等同一个 `ChatAsync` 请求。默认每个 Session 同时最多一个活动 Turn；跨 Session 并发运行。**v0.1 提案**：活动 Turn 存在时的第二个 `StartTurn` 返回 Busy，不默认隐式排队，以避免恢复和排序歧义。
+
+## 2. Actor / Mailbox
+
+单 Session 一个逻辑 Actor 管理可变状态。通过有界 Channel 输入命令；不能在 Actor 的主处理循环中直接等待完整 AgentLoop 完成，否则 `Interrupt`、`Steer`、`Approval` 无法及时处理。
+
+TurnExecutor 在独立异步执行任务中运行，其步骤结果发回 Actor 进行状态转换和事件编号。只有 Actor 写入 Session/Turn 状态；取消由 Coordinator 触发对应 CTS，同时记入中断命令以确保事实一致性。内部完成通知也进入同一串行状态通道。
+
+## 3. Command 语义（候选）
+
+| Command | 前置条件 | 行为与保证 |
+| --- | --- | --- |
+| `StartTurn` | Session idle | 接收并开始一个新 Turn；接收回执不是完成信号 |
+| `SteerTurn` | Turn active | 入队补充用户约束，在下一个安全模型请求检查点生效 |
+| `InterruptTurn` | Turn active | 触发取消，尽力终止子调用，并产生终态 |
+| `ResolveApproval` | 有匹配的待审批 ID | 只解除对应 Approval，重复答复必须安全拒绝或幂等处理 |
+
+每条命令必须有 `CommandId`，重复请求需要明确定义去重语义。`SubmitAsync` 的 CancellationToken 仅取消“等待提交”，不能隐式取消已接受的 Turn；Turn 取消必须通过独立命令。
+
+## 4. Turn 状态与错误
+
+`Queued → Running ↔ AwaitingApproval → Completed | Failed | Interrupted`；已终止状态不可逆。Turn 状态表示可见总体进度；并行 Tool Step 由各自状态表述。每个终态必须携带 `CompletionReason`、错误/预算限制详情（适用时）。
+
+- 模型请求异常：由 Provider 分类 transient/permanent/protocol，重试受预算约束。
+- 工具业务失败：结构化 `ToolResult` 反馈模型，非必然使 Turn 失败。
+- 授权拒绝：不执行工具，将拒绝事实/结果返回模型。
+- 用户中断：发送取消，等待有界清理，超限明确记录无法确认的执行状态。
+- 预算触顶：有界结束，显式提示限制原因；禁止死循环。
+
+## 5. 并发与确定性
+
+- 同一 Turn 的多个模型工具调用保留请求中的 `CallIndex`，按该索引稳定组装工具结果。
+- 默认工具串行。可信任内置只读工具可通过明确的冲突/资源规则并行；不以模型声明的 `readOnly` 作为信任依据。
+- 追加用户要求不会修改已发往模型的不可变请求，只在安全检查点作用于后续上下文。
+- 不提供含糊的“完全同时修改 Session”语义。将来 Subagents 使用独立执行作用域。
+
+## 6. Event 与实时输出
+
+分为 **Durable facts**（TurnStarted、ToolInvocationPrepared、ApprovalResolved、ToolCompleted、TurnCompleted 等）和 **Ephemeral notifications**（TextDelta、工具进度、可选推理摘要）。
+
+持久事实信封包含 `SchemaVersion, SessionId, TurnId?, Sequence, EventId, CorrelationId?, Timestamp, Payload`。每 Session Sequence 从同一状态写入者产生，递增且唯一。实时 TokenDelta 可以携带非持久游标，不能冒充持久事件序号。多个订阅者是广播而非竞争一个 ChannelReader；慢客户端有独立背压/断线补读政策。
+
+可靠执行事实需满足“持久追加成功后可发布/可依赖”；日志不可用时不能继续启动可能产生副作用的新工具。
