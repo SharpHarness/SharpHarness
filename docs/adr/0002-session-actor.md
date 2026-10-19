@@ -1,19 +1,22 @@
 # ADR-0002: Single-Writer Session Actor
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-10-19
+- **Decision authority:** Product owner, approved in architecture review on 2026-10-19
 
 ## Context
 
 Turn execution involves long model calls, tool execution, user interrupt, approval and steering. Shared mutable state with uncontrolled callbacks risks races and deadlock.
 
-## Proposal
+## Decision
 
-Each Session has one logical serial writer (not an OS thread). Mailbox processes external commands and internal completion messages. AgentLoop runs as a separate asynchronous task so approvals/interrupts remain responsive. At most one active Turn per Session; first release returns Busy for a second StartTurn, while independent Sessions can run concurrently.
+Each Session has one logical serial writer (not an OS thread). Mailbox processes external commands and internal completion messages. AgentLoop runs as a separate asynchronous task so approvals/interrupts remain responsive. **At most one active Turn per Session.** While it is active, a different `StartTurn` is rejected immediately with an explicit `Busy` receipt; it is **not** queued or converted into `SteerTurn`. Independent Sessions can run concurrently. The existing active Turn stays unaffected by the rejected command.
+
+The Actor owns and serializes Session/Turn state transitions. `InterruptTurn`, `SteerTurn`, and `ResolveApproval` remain processable during execution. The exact public C# type signatures remain subject to contract review.
 
 ## Consequences / tests
 
-Deterministic state transitions and event ordering; extra coordination needed between actor and tasks. Must test interleaved interrupt/approval, late completions after cancellation, duplicate commands and parallel Sessions.
+Deterministic state transitions and event ordering; extra coordination needed between actor and tasks. Must test: (a) second `StartTurn` returns `Busy` without creating another Turn; (b) rejected `StartTurn` does not cancel/steer the current Turn; (c) `SteerTurn` and approval remain responsive; (d) interleaved interrupt/approval and late completions after cancellation; (e) duplicate commands and parallel Sessions. The mailbox must not await the entire AgentLoop synchronously.
 
 ## Alternatives
 
