@@ -1,6 +1,6 @@
 # Session, Turn and Execution Protocol v0.1
 
-**Status:** Draft | Related: ADR-0002, ADR-0003.
+**Status:** Draft (protocol details) | ADR-0002 and ADR-0003 Accepted; public API shapes remain proposals.
 
 ## 1. 生命周期定义
 
@@ -26,7 +26,7 @@ TurnExecutor 在独立异步执行任务中运行，其步骤结果发回 Actor 
 | `InterruptTurn` | Turn active | 触发取消，尽力终止子调用，并产生终态 |
 | `ResolveApproval` | 有匹配的待审批 ID | 只解除对应 Approval，重复答复必须安全拒绝或幂等处理 |
 
-每条命令必须有 `CommandId`，重复请求需要明确定义去重语义。`SubmitAsync` 的 CancellationToken 仅取消“等待提交”，不能隐式取消已接受的 Turn；Turn 取消必须通过独立命令。
+**ADR-0003 已批准**：每条命令必须带有稳定的 `CommandId`，服务端必须检测并安全处理重复提交；回执仅表示命令是否被接受，不表示 Turn 已完成。针对同一 ID 不同载荷、去重保留期限和跨重启行为的细节仍属契约待审事项。`SubmitAsync` 的 CancellationToken 仅取消“等待提交/回执”，不能隐式取消已经接受的 Turn；仅通过 `InterruptTurn` 请求终止。
 
 ## 4. Turn 状态与错误
 
@@ -47,8 +47,8 @@ TurnExecutor 在独立异步执行任务中运行，其步骤结果发回 Actor 
 
 ## 6. Event 与实时输出
 
-分为 **Durable facts**（TurnStarted、ToolInvocationPrepared、ApprovalResolved、ToolCompleted、TurnCompleted 等）和 **Ephemeral notifications**（TextDelta、工具进度、可选推理摘要）。
+**ADR-0003 已批准**：对外输出区分 **Durable facts**（TurnStarted、ToolInvocationPrepared、ApprovalResolved、ToolCompleted、TurnCompleted 等）和 **Ephemeral notifications**（TextDelta、工具进度、可选推理摘要）。持久事实在配置可靠 Session Store 时必须支持按事件游标重放；实时增量默认不保证持久化或重放。
 
-持久事实信封包含 `SchemaVersion, SessionId, TurnId?, Sequence, EventId, CorrelationId?, Timestamp, Payload`。每 Session Sequence 从同一状态写入者产生，递增且唯一。实时 TokenDelta 可以携带非持久游标，不能冒充持久事件序号。多个订阅者是广播而非竞争一个 ChannelReader；慢客户端有独立背压/断线补读政策。
+持久事实信封包含 `SchemaVersion, SessionId, TurnId?, Sequence, EventId, CorrelationId?, Timestamp, Payload`。每 Session Sequence 从同一状态写入者产生，递增且唯一。实时 TokenDelta 可以携带非持久游标，不能冒充持久事件序号。多个订阅者必须是广播而非竞争一个 `ChannelReader`；订阅者的取消、缓冲与背压处理相互隔离，慢客户端有独立背压/断线补读政策。事件重放游标只引用持久事件序号；缺乏可靠存储时不得承诺断线后可重放。
 
 可靠执行事实需满足“持久追加成功后可发布/可依赖”；日志不可用时不能继续启动可能产生副作用的新工具。
