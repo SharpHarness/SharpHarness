@@ -2,7 +2,7 @@
 
 **Architecture Specification v0.1 | 2026-10-19 | Status: DRAFT FOR OWNER REVIEW**
 
-本目录目前是**待确认的设计基线**，并非稳定 API 或代码实现。产品负责人已确认“通用 Core + Coding Agent”和“精简内核 + 标准运行服务”；其余机制仍需审阅 ADR 后最终确认。除已被明确批准的设计文档外，Coding Agent 不得直接开始实现。
+本目录目前是**待确认的设计基线**，并非稳定 API 或代码实现。产品负责人已确认“通用 Core + Coding Agent”、“精简内核 + 标准运行服务”以及“单 Session Actor、每 Session 最多一个活动 Turn、Busy 时直接拒绝新的 StartTurn”；其他 Proposed ADR 仍需审阅。除已被明确批准的设计文档外，Coding Agent 不得直接开始实现。
 
 ## 阅读顺序
 
@@ -19,7 +19,7 @@
 ## 架构决策记录
 
 - [ADR-0001 Thin Kernel](adr/0001-thin-kernel.md)（Accepted：产品负责人已选 B）
-- [ADR-0002 Single-writer Session](adr/0002-session-actor.md)（Proposed）
+- [ADR-0002 Single-writer Session](adr/0002-session-actor.md)（Accepted：单活动 Turn，Busy 拒绝新 StartTurn）
 - [ADR-0003 Commands/Events](adr/0003-command-event-protocol.md)（Proposed）
 - [ADR-0004 Typed extension pipeline](adr/0004-extension-pipelines.md)（Proposed）
 - [ADR-0005 Journal/Snapshot](adr/0005-persistence.md)（Proposed）
@@ -27,8 +27,7 @@
 
 ## 待产品负责人批准的问题
 
-- 所有 Proposed ADR 是否批准成为 v0.1 基线？
-- 首版只支持一个活动 Turn，新的 StartTurn 在 Busy 状态下**直接拒绝**（建议），是否接受？
+- 剩余 ADR-0003～0006 是否批准成为 v0.1 基线？
 - CLI 首版是否默认开启权限审批及本地持久化？建议是。
 - 第一次开发任务是否只允许工程骨架+测试基础设施？建议是。
 - 开源许可证尚未确定；公开仓库不等于已授权他人使用/再分发。
