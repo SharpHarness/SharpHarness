@@ -8,10 +8,10 @@
 | --- | --- | --- |
 | `IAgentRuntime` | Create/open Session, inject service set, honor lifecycle | Does not dictate UI or provider |
 | `IAgentSession` | Stable `SessionId`; submit command; subscribe; dispose | One active Turn, single state writer |
-| `AgentCommand` | Version, `CommandId`, `SessionId`, payload | `StartTurn`, `SteerTurn`, `InterruptTurn`, `ResolveApproval` |
-| `CommandReceipt` | Accepted/rejected, status, correlation/Turn ID if available | No implication of Turn completion; `StartTurn` during an active Turn MUST be rejected with `Busy` (ADR-0002) |
-| `AgentNotification` | Typed durable event or ephemeral stream item | Do not confuse with journal fact |
-| `AgentEventEnvelope` | SchemaVersion, SessionId, TurnId?, Sequence, EventId, CorrelationId?, timestamp, event | Sequence monotonic per Session |
+| `AgentCommand` | Version, stable `CommandId`, `SessionId`, payload | Must detect duplicate submissions (ADR-0003); exact retention and conflict policy pending |
+| `CommandReceipt` | Accepted/rejected, status, correlation/Turn ID if available | Acknowledges submission, NOT completion; `StartTurn` while active MUST reject with `Busy` (ADR-0002/0003) |
+| `AgentNotification` | Typed durable fact delivery or ephemeral stream item, per-subscription | Broadcast semantics, no shared competing readers; ephemeral replay not guaranteed (ADR-0003) |
+| `AgentEventEnvelope` | SchemaVersion, SessionId, TurnId?, Sequence, EventId, CorrelationId?, timestamp, event | Durable fact with monotonic per-Session Sequence, supports cursor replay with durable store (ADR-0003) |
 | `IAgentModelClient` | Stream normalized model responses; cancellation; declared capabilities | Model provider implementation injected |
 | `ModelRequest` | Immutable messages, tools, provider options, budgets | Preserve multimodal and provider extensions |
 | `ModelEvent` | Text/ToolCall fragments, completion, usage/error | Incomplete ToolCall never runnable |
@@ -33,7 +33,7 @@
 
 ## 3. Cancellation and threading
 
-`SubmitAsync` cancellation only cancels the acceptance wait. `InterruptTurn` cancels running Turn. `SubscribeAsync` cancellation stops that subscriber, not the Session. `DisposeAsync` must document Drain/Cancel/Detach choice; **proposal**: default cancel active Turn with bounded cleanup and return when ownership is relinquished, not silently keep mutating tools running.
+`SubmitAsync` cancellation only cancels the acceptance wait; after acceptance the Turn continues until completed or explicitly interrupted. `InterruptTurn` cancels running Turn. `SubscribeAsync` cancellation stops that subscriber only, not the Session or other subscribers. Durable facts are replayable when a durable store is enabled; ephemeral deltas may be lost across disconnect. `DisposeAsync` must document Drain/Cancel/Detach choice; **proposal**: default cancel active Turn with bounded cleanup and return when ownership is relinquished, not silently keep mutating tools running.
 
 Actor owns mutable Session state; asynchronous model/tool tasks return internal messages. Each Session allows only one active Turn; a second `StartTurn` returns `Busy` rather than queueing or mutating the running Turn (ADR-0002). Client listeners cannot mutate internal state by accessing Event objects. Payloads treated as immutable snapshots.
 
@@ -47,4 +47,4 @@ Actor owns mutable Session state; asynchronous model/tool tasks return internal 
 
 ## 5. Contract review gates before coding
 
-Decide final DTO types, JSON serializer strategy/AOT constraints, persistence consistency guarantees, event history replay API, `CommandReceipt` error taxonomy, extension metadata policy, and API versioning. Every decision must be documented before public NuGet publication.
+Decide final DTO types, JSON serializer strategy/AOT constraints, persistence consistency guarantees, event history replay API/cursor shape, duplicate CommandId retention and payload-conflict behavior, notification backpressure, `CommandReceipt` error taxonomy, extension metadata policy, and API versioning. Every decision must be documented before public NuGet publication.
