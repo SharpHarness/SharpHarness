@@ -9,7 +9,7 @@
 - **Turn**：一次用户任务的完整执行，从请求排队到完成/失败/中断。
 - **Step**：ContextBuild、ModelInvocation、ToolInvocation、Compaction 或 Verification 的独立执行单元。
 
-Session 不能等同一个 `ChatAsync` 请求。默认每个 Session 同时最多一个活动 Turn；跨 Session 并发运行。**v0.1 提案**：活动 Turn 存在时的第二个 `StartTurn` 返回 Busy，不默认隐式排队，以避免恢复和排序歧义。
+Session 不能等同一个 `ChatAsync` 请求。默认每个 Session 同时最多一个活动 Turn；跨 Session 并发运行。**ADR-0002 已批准**：活动 Turn 存在时新的 `StartTurn` 直接返回明确的 `Busy` 拒绝结果，不会创建第二个 Turn，不会隐式排队，也不会自动视为 `SteerTurn`；原活动 Turn 不受影响。
 
 ## 2. Actor / Mailbox
 
@@ -21,7 +21,7 @@ TurnExecutor 在独立异步执行任务中运行，其步骤结果发回 Actor 
 
 | Command | 前置条件 | 行为与保证 |
 | --- | --- | --- |
-| `StartTurn` | Session idle | 接收并开始一个新 Turn；接收回执不是完成信号 |
+| `StartTurn` | Session idle | 接收并开始一个新 Turn；接收回执不是完成信号。若已有活动 Turn，返回 `Busy`，不排队、不改变当前 Turn（ADR-0002） |
 | `SteerTurn` | Turn active | 入队补充用户约束，在下一个安全模型请求检查点生效 |
 | `InterruptTurn` | Turn active | 触发取消，尽力终止子调用，并产生终态 |
 | `ResolveApproval` | 有匹配的待审批 ID | 只解除对应 Approval，重复答复必须安全拒绝或幂等处理 |
