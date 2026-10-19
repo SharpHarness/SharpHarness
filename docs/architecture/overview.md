@@ -49,7 +49,7 @@ Hosts: CLI/TUI | Embedded .NET SDK | Future RPC/IDE
 2. 一次工具调用的路径固定为 `resolve → schema validation → policy → approval (if required) → controlled execution → result`。
 3. 模型输出、工具参数、工具元数据、MCP 返回值均不可信；不得绕过审批。
 4. ToolStarted 未有可靠终态记录的副作用工具，恢复时为 Unknown，不可默认重放。
-5. 对外发布的事件具有会话范围内单调序号；Token Delta 可以作为非持久通知。
+5. 持久事实事件具有会话范围内单调序号、配置持久存储时可游标重放；Token Delta 作为非持久通知，不承诺重放。订阅者必须独立接收广播而非竞争同一队列（ADR-0003）。
 6. 每次模型请求具有可追踪的不可变上下文快照；压缩不能吞掉活跃约束。
 7. 任何任务都可以受取消与预算上限约束；终止状态必须明确可观察。
 
