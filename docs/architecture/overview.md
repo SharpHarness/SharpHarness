@@ -1,6 +1,6 @@
 # SharpHarness Architecture Overview v0.1
 
-**Status:** Draft | **Owner decision already accepted:** General Agent Core + Coding Agent; Thin Kernel + Standard Runtime Services.
+**Status:** Draft | **Owner decisions accepted:** General Agent Core + Coding Agent; Thin Kernel + Standard Runtime Services; ADR-0002 Session Actor; ADR-0003 Command/Event; ADR-0004 typed stage-specific extensibility.
 
 ## 1. 产品目标
 
@@ -41,7 +41,7 @@ Hosts: CLI/TUI | Embedded .NET SDK | Future RPC/IDE
          Platform adapters: files/process/OS sandbox
 ```
 
-**Core owns when and in which order a capability is called, not how that capability is implemented.** Runtime providers/implementations are injected through Abstractions. Composition happens at the CLI/host entry point.
+**Core owns when and in which order a capability is called, not how that capability is implemented.** Under accepted ADR-0004, extension contracts are typed per Context, Model, Tool, and Event/Observability stage rather than a universal `IMiddleware`. Mandatory checkpoints cannot be skipped by hooks. Runtime providers/implementations are injected through Abstractions. Composition happens at the CLI/host entry point.
 
 ## 4. 强制不变量
 
@@ -52,6 +52,7 @@ Hosts: CLI/TUI | Embedded .NET SDK | Future RPC/IDE
 5. 持久事实事件具有会话范围内单调序号、配置持久存储时可游标重放；Token Delta 作为非持久通知，不承诺重放。订阅者必须独立接收广播而非竞争同一队列（ADR-0003）。
 6. 每次模型请求具有可追踪的不可变上下文快照；压缩不能吞掉活跃约束。
 7. 任何任务都可以受取消与预算上限约束；终止状态必须明确可观察。
+8. 扩展接口遵循阶段边界，Core 固定执行次序与强制检查点；可替换服务通过明确接口和 DI 装配，不能使用万能 Middleware（ADR-0004）。
 
 ## 5. v0.1 阶段里程碑
 

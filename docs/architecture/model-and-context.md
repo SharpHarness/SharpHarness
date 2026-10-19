@@ -1,12 +1,12 @@
 # Model and Context Pipelines v0.1
 
-**Status:** Draft | Related: ADR-0004.
+**Status:** Draft (contract details) | ADR-0004 (stage-specific typed extension pipelines) Accepted.
 
 ## 1. 基本选择
 
 不要将 Chat Completions JSON 作为内部唯一消息模型。定义供应商无关的 `Message` / `ContentPart` / `ToolCall` / `ModelRequest` / `ModelEvent`，由独立协议 Adapter 映射 OpenAI Responses、Chat Completions、Anthropic Messages、Gemini API 和兼容实现。
 
-`IModelClient` 表示已经配置好的模型调用器；可选 `IModelProvider` 表示模型枚举、配置与创建工厂。不要在 Core 内按厂商名称分支。
+`IModelClient` 表示已经配置好的模型调用器；可选 `IModelProvider` 表示模型枚举、配置与创建工厂。**这些仍是候选接口名称，不代表公共 API 已冻结。** 标准 Model 服务由宿主通过 DI 装配，Core 不得按厂商名称分支；模型适配器不允许更改 Tool 授权顺序。
 
 ## 2. 能力与数据不丢失
 
@@ -24,7 +24,7 @@
 
 ## 4. Context Pipeline
 
-每轮模型调用前，从指令、当前用户请求、Session 历史、工作空间贡献、活跃约束、摘要和 Token 预算生成不可变 `ModelRequest`。`ContextContributor` 只贡献候选片段，不允许直接修改持久 Session History。Context Builder 决定最终优先级、去重、截断，并记录实际发送请求的可安全审计视图。
+每轮模型调用前，从指令、当前用户请求、Session 历史、工作空间贡献、活跃约束、摘要和 Token 预算生成不可变 `ModelRequest`。**ADR-0004 已批准**：`ContextContributor` 一类强类型扩展只贡献候选片段，不允许直接修改持久 Session History。由内核与标准 Context 服务约定固定调用阶段；贡献者之间的排序和异常处理需在接口合同中显式定义，不得自行隐式注册全局 Middleware。Context Builder 决定最终优先级、去重、截断，并记录实际发送请求的可安全审计视图。
 
 **优先级建议**：系统和安全不可变约束 > 开发/Agent Profile 指令 > 用户当前任务与显式约束 > 关联上下文 > 历史摘要。文档/工具返回内容只能作为不可信数据，不能升级为指令或权限。
 

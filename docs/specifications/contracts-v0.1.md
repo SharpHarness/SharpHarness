@@ -19,9 +19,11 @@
 | `ToolDefinition` | Stable tool name, schema, capabilities, version | Metadata is not proof of safety |
 | `ToolInvocation` | Invocation ID, ToolCall ID, CallIndex, validated args, scope, origin | Idempotency key is stable across recovery |
 | `ToolResult` | Status, normalized content, error, truncation, side-effect state | Status may be Unknown |
-| `IPolicyEvaluator` | Policy verdict Allow/Deny/Ask + reason | Cannot be omitted from path |
-| `IContextContributor` | Contribute prioritized context parts into builder | No mutation of Session history |
+| `IPolicyEvaluator` | Policy verdict Allow/Deny/Ask + reason | ADR-0004: mandatory Tool-stage checkpoint, cannot be omitted/reordered; precise authorization remains ADR-0006 |
+| `IContextContributor` | Contribute prioritized context parts into builder | ADR-0004: typed stage-specific contract, no mutation of Session history; ordering/error policy TBD |
 | `ISessionStore` | Append/read durable facts, expected Sequence and snapshot | Append atomicity to be explicitly tested |
+
+**ADR-0004 approved architecture constraints:** Core fixes execution phase boundaries, lifecycle and mandatory checkpoints; standard Context, Model, Tool and Event/Observability components are registered by explicit DI contracts. No universal `IMiddleware` or all-powerful Hook may wrap the Agent Loop. Telemetry observers may fail independently without hiding critical Journal failures. Public interfaces, DI lifetimes, ordering and error policies remain unapproved implementation details.
 
 ## 2. Required result and state semantics
 
@@ -47,4 +49,4 @@ Actor owns mutable Session state; asynchronous model/tool tasks return internal 
 
 ## 5. Contract review gates before coding
 
-Decide final DTO types, JSON serializer strategy/AOT constraints, persistence consistency guarantees, event history replay API/cursor shape, duplicate CommandId retention and payload-conflict behavior, notification backpressure, `CommandReceipt` error taxonomy, extension metadata policy, and API versioning. Every decision must be documented before public NuGet publication.
+Decide final DTO types, JSON serializer strategy/AOT constraints, persistence consistency guarantees, event history replay API/cursor shape, duplicate CommandId retention and payload-conflict behavior, notification backpressure, `CommandReceipt` error taxonomy, extension metadata policy, DI registration/lifetimes, contributor ordering and stage-specific failure policies, and API versioning. Every decision must be documented before public NuGet publication.

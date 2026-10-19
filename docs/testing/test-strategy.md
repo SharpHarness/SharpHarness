@@ -39,6 +39,8 @@
 | RT-022 | Receipt semantics and cancellation | Receipt does not indicate Turn completion; submit wait cancellation does not interrupt accepted Turn |
 | RT-023 | Durable cursor replay and ephemeral delta | Journal facts replay in sequence on reconnect when store configured; ephemeral deltas not promised |
 | RT-024 | Busy StartTurn | Second StartTurn rejected Busy, no implicit queueing, current Turn unaffected |
+| RT-025 | Stage extension isolation and ordering | Context/Model/Tool/Event contracts cannot mutate unrelated stages or reorder mandatory gates; injectable services are replaceable |
+| RT-026 | Observer and journal failure boundaries | Telemetry observer failure can be isolated; durable journal failure cannot be silently ignored or treated as telemetry failure |
 
 ## 3. Evidence requirements
 
@@ -48,7 +50,7 @@ For each test: source commit SHA, OS/runtime, exact command, result summary, rel
 
 - **M0 documentation:** architecture and ADR approved, no contradictory lifecycle rules, task boundaries clear.
 - **M1 bootstrap:** correct project graph; build and trivial test suite run on all three OS; no unsupported claims of implementation.
-- **M2 runtime:** RT-001–RT-012 and RT-020–RT-024 pass; APIs reviewed.
+- **M2 runtime:** RT-001–RT-012 and RT-020–RT-026 pass; APIs reviewed.
 - **M3 coding:** RT-013–RT-019 and realistic temporary-repository end-to-end scenarios pass; known security limitations listed.
 
 Do not merge a change claiming a completed capability without matching test evidence. Manual inspection and CI status are different evidence types and must not be conflated.
