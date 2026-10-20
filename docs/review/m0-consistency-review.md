@@ -69,6 +69,6 @@ Documentation RT-001..RT-036 is a **requirements/test-plan inventory**, not evid
 
 ### Next architecture-only task
 
-Prepare `docs/specifications/m0-contract-decisions-v0.1.md` for owner review. Limit decisions to the observable SDK protocol, session concurrency, Tool/Policy authority, and safe-storage ordering; leave provider wire formats, SQLite DDL and TUI rendering to later tasked contracts. Then rerun M0 documentation checks, present remaining product choices, obtain explicit owner sign-off and only then authorize T001.
+A [proposed C01–C07 contract-decision supplement](../specifications/m0-contract-decisions-v0.1.md) has been drafted for owner review. **The M0-B01 blocker remains OPEN**; this proposal does not constitute contract approval. The next step is to review and explicitly accept or revise the proposed decisions. Limit decisions to the observable SDK protocol, session concurrency, Tool/Policy authority, and safe-storage ordering; leave provider wire formats, SQLite DDL and TUI rendering to later tasked contracts. Then rerun M0 documentation checks, present remaining product choices, obtain explicit owner sign-off and only then authorize T001.
 
 **Reviewer limitation:** No build, unit test, crash recovery test or cross-platform runtime test can be marked Pass because this branch currently contains design documents only.
