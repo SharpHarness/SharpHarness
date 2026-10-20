@@ -26,7 +26,7 @@ TurnExecutor 在独立异步执行任务中运行，其步骤结果发回 Actor 
 | `InterruptTurn` | Turn active | 触发取消，尽力终止子调用，并产生终态 |
 | `ResolveApproval` | 有匹配的待审批 ID | ADR-0006：匹配 Session/Turn/Invocation、工具身份/版本、参数与解析后的作用域、有效期；重复、过期、被取消或载荷不匹配必须安全拒绝或幂等处理，不启动错误的工具 |
 
-**ADR-0003 已批准**：每条命令必须带有稳定的 `CommandId`，服务端必须检测并安全处理重复提交；回执仅表示命令是否被接受，不表示 Turn 已完成。针对同一 ID 不同载荷、去重保留期限和跨重启行为的细节仍属契约待审事项。`SubmitAsync` 的 CancellationToken 仅取消“等待提交/回执”，不能隐式取消已经接受的 Turn；仅通过 `InterruptTurn` 请求终止。
+**ADR-0003、C02 已批准**：每条命令必须有稳定的 `CommandId`，以 `(SessionId, CommandId)` 去重。具有可合法标识的命令首次确定接受或拒绝（包括 `Busy`）时，必须将规范化载荷指纹、原始回执及相关持久事实原子记录；同 ID 同载荷重试返回原回执、不重新执行，即使 Session 后来空闲也不得将原 `Busy` 变为 `Accepted`。同 ID 不同载荷返回 `DuplicateCommandConflict`，不改变原结果；可靠存储重启后仍需保留已存回执直到 Session 的明确保留策略允许清理。存储失败或提交结果不确定时，不能声称原回执已可靠提交，也不能授权副作用；使用原 CommandId 重试并先核对持久记录。身份无效而无法安全去重的拒绝不承诺持久化。`SubmitAsync` 的 CancellationToken 仅取消“等待提交/回执”，不能隐式取消已经接受的 Turn；仅通过 `InterruptTurn` 请求终止。
 
 ## 4. Turn 状态与错误
 

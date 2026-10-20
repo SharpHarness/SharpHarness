@@ -30,21 +30,21 @@ Each decision below is **Proposed** until explicitly approved; use **MUST**, **M
 
 **Approved resolution C01-A:** second `OpenSession` on the same Runtime while the Session is controlled returns `SessionAlreadyOpen`, with no second Actor and no implicit shared control handle. Independent observation subscriptions are allowed, but do not confer control. No second approval is needed for this decision.
 
-## C02 · Command acceptance and idempotency — RECOMMEND APPROVE
+## C02 · Command acceptance and idempotency — ACCEPTED (product owner, 2026-10-20)
 
 **Command envelope minimum:** `ProtocolVersion`, `SessionId`, `CommandId`, typed payload (`StartTurn`, `SteerTurn`, `InterruptTurn`, `ResolveApproval`), and correlation when applicable. An accepted `StartTurn` receipt provides the assigned TurnId; the receipt says the command was admitted, **not** that the Turn completed.
 
-**Proposed `CommandReceipt` outcomes:** `Accepted`, `Busy`, `InvalidState`, `InvalidCommand`, `NotFound`, `DuplicateCommandConflict`, `StorageUnavailable` and `OwnershipConflict`. Permission denials should be represented by the corresponding tool/approval or command rejection as appropriate. The exact C# discriminated-union/enum/error struct design is deferred to type-level review.
+**Candidate `CommandReceipt` outcome names (C02 behavioral contract approved, exact C# type names not frozen):** `Accepted`, `Busy`, `InvalidState`, `InvalidCommand`, `NotFound`, `DuplicateCommandConflict`, `StorageUnavailable` and `OwnershipConflict`. Permission denials should be represented by the corresponding tool/approval or command rejection as appropriate. The exact C# discriminated-union/enum/error struct design is deferred to type-level review.
 
 **Replay and conflict**
-1. `(SessionId, CommandId)` is the deduplication key. On the first submission, record command identity, a canonical payload fingerprint, its acceptance/rejection receipt and necessary durable facts before claiming durable acceptance.
-2. A repeated **identical** command returns the original receipt without reapplying its side effects, even if the Session state has since changed. Example: a previously `Busy` rejected `StartTurn` does not become accepted by retrying its original CommandId after the active Turn ends.
-3. Reuse of the same CommandId with **different canonical payload** returns `DuplicateCommandConflict` and performs no action.
-4. For production SQLite storage, command deduplication records MUST survive process restart as long as the relevant Session is retained; no silent TTL pruning before an explicit retention policy. For fake/volatile M2 stores, dedup scope is only the fake Session's lifetime and is **not** evidence of crash safety.
-5. If cancellation or transport failure occurs before receiving `CommandReceipt`, the caller cannot infer whether admission happened. Retrying with the **same** CommandId is the safe client operation.
+1. **Approved:** `(SessionId, CommandId)` is the deduplication key. For an adequately identified, validated command, durably record its identity, canonical typed payload fingerprint, deterministic Accepted or Rejected receipt (including `Busy`) and any associated durable state/facts under an atomic transition. A persistable rejection MUST NOT change into acceptance when the Session state later changes. Exact fingerprint serialization/cryptographic format is subject to implementation contract review, but must include security-relevant typed payload semantics and protocol version.
+2. **Approved:** A repeated command with the **same canonical payload** returns the *original, durably recorded receipt*, with no re-execution or additional state transition, even if Session state has changed. For example a previously `Busy`-rejected `StartTurn` MUST remain `Busy` when the same CommandId is retried after the active Turn ends; a new intent requires a new CommandId.
+3. **Approved:** Reuse of a CommandId with a **different canonical payload** MUST produce `DuplicateCommandConflict` without altering the originally recorded command or performing any action.
+4. **Approved:** On production SQLite stores, original receipts for both Accepted commands and **deterministically Rejected** commands MUST survive process restart while the relevant Session remains retained. No silent TTL pruning of required deduplication records. A fake/volatile M2 store only guarantees deduplication for its own lifetime and MUST NOT be described as crash-safe.
+5. **Approved failure boundary:** If transport cancellation, store I/O failure, or *uncertain commit status* prevents a trustworthy receipt, the Runtime MUST NOT claim a durable success/rejection or fabricate the original result. Return an explicit storage/uncertainty error if feasible, otherwise the caller treats outcome as unknown and retries/queries with the **same** CommandId after recovery. The store reconciles whether an original receipt exists before any new evaluation; an ambiguous original transition MUST NOT authorize a side effect. Commands with malformed or missing identity which cannot be safely keyed, and storage failures without durable results, are not asserted to have persisted rejection receipts.
 6. `SubmitAsync` cancellation stops waiting for an acceptance result; it cannot cancel an already accepted Turn. Use `InterruptTurn` to request a Turn interruption.
 
-**Review question C02-A:** Approve persistent deduplication of both Accepted and deterministically Rejected commands, including Busy? **Recommendation:** yes; avoids ambiguous retry outcomes.
+**Approved resolution C02-A:** Persist and deduplicate both Accepted commands and deterministically Rejected commands with valid identities, including `Busy`. The original reply is immutable for a given `(SessionId, CommandId, canonical payload)`. Different payloads conflict. Storage failure or uncertain commit never counts as a confirmed durable receipt. Detailed transaction boundary/canonicalization API belongs to C04 and future C# signature review.
 
 ## C03 · Durable Events, subscription cursor, notifications — RECOMMEND APPROVE
 
@@ -104,7 +104,7 @@ Reject the alternative of `Detach` as the implicit default because it can contin
 | ID | Choice | Recommendation | Status |
 | --- | --- | --- | --- |
 | C01 | Public root & exclusive Session ownership | exclusive control per Runtime; second Open rejects SessionAlreadyOpen; independent event subscribers permitted | **Accepted (2026-10-20)** |
-| C02 | Commands, receipts, persistent idempotence | deduplicate Accepted and Rejected by SessionId+CommandId | **Proposed** |
+| C02 | Commands, receipts, persistent idempotence | stable `(SessionId, CommandId)` key, immutable Accepted/deterministic Rejected receipt incl. Busy; conflict on payload; uncertain store outcome never faked | **Accepted (2026-10-20)** |
 | C03 | Durable cursor and multi-subscriber backpressure | exclusive cursor; gap-free replay; overflow signals reconnect | **Proposed** |
 | C04 | Actor ↔ store commit ordering | Actor sole state writer; async worker; required durable barrier | **Proposed** |
 | C05 | Approval/tool authorization & failure | fixed gates; scope-bound approval; Unknown not retried | **Proposed** |
@@ -116,9 +116,9 @@ Reject the alternative of `Detach` as the implicit default because it can contin
 | Test ID | Scenario | Expected evidence when implemented |
 | --- | --- | --- |
 | CT-001 | Second OpenSession same SessionId, with multiple event subscribers | returns SessionAlreadyOpen within same Runtime; no duplicate Actor, independent read-only subscriptions succeed |
-| CT-002 | Duplicate Busy StartTurn after active Turn completes | original Busy receipt returned; no Turn created |
-| CT-003 | Same CommandId with different payload | DuplicateCommandConflict; no change |
-| CT-004 | Submit acceptance response lost and caller retries | one durable command admission/Turn; original receipt retrievable |
+| CT-002 | Duplicate Busy StartTurn after active Turn completes | original persisted Busy receipt returned on same CommandId; no Turn created |
+| CT-003 | Same CommandId with different payload | DuplicateCommandConflict; original receipt unchanged, no new action |
+| CT-004 | Submit acceptance response lost and caller retries | same CommandId retrieves original durable receipt after restart, exactly one command admission/Turn, without reexecution |
 | CT-005 | Reconnect from AfterSequence(n) during simultaneous publish | no committed durable event gap or reordering |
 | CT-006 | Slow subscriber overflows | explicit cursor and reconnect outcome; other subscriber unaffected |
 | CT-007 | Commit delayed/failed while interrupt arrives | Actor responsive; no unauthorized side effect; coherent state |
@@ -127,6 +127,8 @@ Reject the alternative of `Detach` as the implicit default because it can contin
 | CT-010 | Dispose during running Turn or subprocess | bounded cleanup; no false claim of stopped effects |
 | CT-011 | Unsupported protocol/command version | explicit rejection; fail closed |
 | CT-012 | Fake Store vs SQLite production authorization | Fake Store cannot enable production mutating tool dispatch |
+| CT-013 | Deterministically rejected Busy retried across restart | original Busy receipt preserved after state changes; new intent requires new CommandId |
+| CT-014 | Storage commit fails or result uncertain | no fabricated Accepted/rejected receipt; same-ID retry reconciles existing record before new decision, no side-effect dispatch on uncertain intent |
 
 **Review evidence:** deterministic fake components for M2; SQLite, subprocess and crash-injection evidence in M3; no tests have run while documents-only.
 
@@ -139,4 +141,4 @@ Reject the alternative of `Detach` as the implicit default because it can contin
 
 ## 4. Review workflow
 
-The product owner decides the remaining Proposed C02–C07 or requests changes. C01 was explicitly Accepted on 2026-10-20 and synchronized with the public-contract catalog and runtime protocol. When all C01–C07 have been approved, synchronize the remaining documents, revise the M0 consistency report, then conduct a second static consistency audit. M0 can be signed off **only after that review**. M1/T001 implementation still needs an explicit separate owner authorization.
+The product owner decides remaining Proposed C03–C07 or requests changes. C01 and C02 were explicitly Accepted on 2026-10-20 and synchronized with the public-contract catalog, runtime protocol and test strategy. When all C01–C07 have been approved, synchronize the remaining documents, revise the M0 consistency report, then conduct a second static consistency audit. M0 can be signed off **only after that review**. M1/T001 implementation still needs an explicit separate owner authorization.
