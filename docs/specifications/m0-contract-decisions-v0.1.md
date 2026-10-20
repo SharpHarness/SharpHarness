@@ -15,7 +15,7 @@ Each decision below is **Proposed** until explicitly approved; use **MUST**, **M
 - **M3:** approved production SQLite store and controlled Coding Tool/Policy execution. Any action capable of real-world side effects requires successful pre-execution durable intent, or must be disabled until reliable storage is available.
 - **Later:** actual RPC protocol, distributed leases, Native AOT, third-party untrusted in-process plugin isolation, OS sandbox and full provider wire-level contract.
 
-## C01 · API surface and ownership — RECOMMEND APPROVE
+## C01 · API surface and ownership — ACCEPTED (product owner, 2026-10-20)
 
 **Public semantic root:** a host uses `IAgentRuntime` to open an independent `IAgentSession` by explicit SessionId/create request. `IAgentSession` exposes: submit a versioned `AgentCommand`, subscribe to typed `AgentNotification` using a durable cursor option, inspect minimally required identity/lifetime data, and asynchronously dispose of its session handle. These are **conceptual members**, not final compile-ready method signatures.
 
@@ -24,9 +24,11 @@ Each decision below is **Proposed** until explicitly approved; use **MUST**, **M
 - One logical Actor writes each Session's mutable state; at most one active Turn. A different `StartTurn` in a busy Session MUST return `Busy`; it MUST NOT queue or become `SteerTurn`.
 - Different Sessions may operate concurrently; Core MUST NOT reference concrete models, tooling, UI, SQLite or Coding projects.
 - Host DI composition root creates runtime and explicit per-Session service scope; resources owned by a Session scope are disposed only when no active controlled operations rely on them. Avoid a global mutable service locator and unaudited arbitrary Hooks.
-- Opening the same persisted Session concurrently from two live owners MUST fail with an explicit ownership conflict; v0.1 makes **no** claim of cross-host/distributed ownership. Precise local-process ownership/lease mechanics belong to the persistence adapter contract.
+- **Approved scope: exclusive control per Runtime.** While one `IAgentSession` controls a SessionId within the same Runtime, another `OpenSession` for that ID MUST reject with `SessionAlreadyOpen`; it MUST NOT reuse/create a second Actor or silently transfer ownership. Multiple independent read-only event subscribers remain allowed through an observation/subscription entry point which does not take ownership or allow command submission. Multiple different SessionIds may operate concurrently.
+- Opening an already persisted but **not currently controlled** Session may restore and take ownership. After a controlled Session is properly released, reopening it may restore under the recovery protocol; C06 will finalize release/disposal completion semantics. The exact subscriber API and handle types remain proposals until the API signatures are reviewed.
+- **Boundary:** exclusive control is guaranteed within one Runtime instance. v0.1 makes **no** claim of cross-process, cross-host or distributed exclusivity merely from this API contract; a production SQLite adapter must prevent unsafe conflicting writers through its own separately reviewed ownership mechanism before such access is enabled.
 
-**Review question C01-A:** Should a second `OpenSession` in the same host reuse the Actor or reject with `SessionAlreadyOpen`? **Recommendation:** reject with `SessionAlreadyOpen` to keep ownership and disposal unambiguous. Future multi-handle attachment can occur through subscriptions instead.
+**Approved resolution C01-A:** second `OpenSession` on the same Runtime while the Session is controlled returns `SessionAlreadyOpen`, with no second Actor and no implicit shared control handle. Independent observation subscriptions are allowed, but do not confer control. No second approval is needed for this decision.
 
 ## C02 · Command acceptance and idempotency — RECOMMEND APPROVE
 
@@ -101,7 +103,7 @@ Reject the alternative of `Detach` as the implicit default because it can contin
 
 | ID | Choice | Recommendation | Status |
 | --- | --- | --- | --- |
-| C01 | Public root & exclusive Session ownership | explicit single owner; second Open rejects SessionAlreadyOpen | **Proposed** |
+| C01 | Public root & exclusive Session ownership | exclusive control per Runtime; second Open rejects SessionAlreadyOpen; independent event subscribers permitted | **Accepted (2026-10-20)** |
 | C02 | Commands, receipts, persistent idempotence | deduplicate Accepted and Rejected by SessionId+CommandId | **Proposed** |
 | C03 | Durable cursor and multi-subscriber backpressure | exclusive cursor; gap-free replay; overflow signals reconnect | **Proposed** |
 | C04 | Actor ↔ store commit ordering | Actor sole state writer; async worker; required durable barrier | **Proposed** |
@@ -113,7 +115,7 @@ Reject the alternative of `Detach` as the implicit default because it can contin
 
 | Test ID | Scenario | Expected evidence when implemented |
 | --- | --- | --- |
-| CT-001 | Second OpenSession same SessionId | returns SessionAlreadyOpen; no duplicate Actor |
+| CT-001 | Second OpenSession same SessionId, with multiple event subscribers | returns SessionAlreadyOpen within same Runtime; no duplicate Actor, independent read-only subscriptions succeed |
 | CT-002 | Duplicate Busy StartTurn after active Turn completes | original Busy receipt returned; no Turn created |
 | CT-003 | Same CommandId with different payload | DuplicateCommandConflict; no change |
 | CT-004 | Submit acceptance response lost and caller retries | one durable command admission/Turn; original receipt retrievable |
@@ -137,4 +139,4 @@ Reject the alternative of `Detach` as the implicit default because it can contin
 
 ## 4. Review workflow
 
-The product owner decides C01–C07 or requests changes. Upon approval, mark each decision Accepted, synchronize `contracts-v0.1.md` and relevant runtime/testing docs, revise the M0 consistency report, then conduct a second static consistency audit. M0 can be signed off **only after that review**. M1/T001 implementation still needs an explicit separate owner authorization.
+The product owner decides the remaining Proposed C02–C07 or requests changes. C01 was explicitly Accepted on 2026-10-20 and synchronized with the public-contract catalog and runtime protocol. When all C01–C07 have been approved, synchronize the remaining documents, revise the M0 consistency report, then conduct a second static consistency audit. M0 can be signed off **only after that review**. M1/T001 implementation still needs an explicit separate owner authorization.

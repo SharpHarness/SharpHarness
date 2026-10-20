@@ -51,6 +51,7 @@
 | RT-034 | Tool invocation before durable intent | Side-effect Executor never starts until SQLite intent commit is confirmed; uncertain commit fails closed |
 | RT-035 | Managed adapters and extension gate ordering | Built-in/Coding/MCP ToolInvocation goes through identical validation/policy/approval gates; no managed Hook reorders security stages |
 | RT-036 | Sandbox claims / runtime boundary | Tests explicitly establish Policy is not OS isolation; untrusted in-process arbitrary .NET code excluded from protection claims |
+| RT-037 | C01 exclusive Session ownership | Second same-Runtime OpenSession for same SessionId returns SessionAlreadyOpen with no second Actor; independent read-only subscriptions continue unaffected |
 
 ## 3. Evidence requirements
 
@@ -60,7 +61,7 @@ For each test: source commit SHA, OS/runtime, exact command, result summary, rel
 
 - **M0 documentation:** architecture and ADR approved, no contradictory lifecycle rules, task boundaries clear.
 - **M1 bootstrap:** correct project graph; build and trivial test suite run on all three OS; no unsupported claims of implementation.
-- **M2 runtime:** RT-001–RT-012 and RT-020–RT-026 pass against deterministic Fake Model/Tool/SessionStore; APIs reviewed. Fake/volatile persistence is **test-only**, not permission to run production side-effect tools without the durable SQLite intent barrier established by ADR-0005/0006.
+- **M2 runtime:** RT-001–RT-012 and RT-020–RT-026 and RT-037 pass against deterministic Fake Model/Tool/SessionStore; APIs reviewed. Fake/volatile persistence is **test-only**, not permission to run production side-effect tools without the durable SQLite intent barrier established by ADR-0005/0006.
 - **M3 coding:** RT-013–RT-019 and RT-027–RT-036, plus realistic temporary-repository end-to-end scenarios, must pass for the first production-capable SQLite-backed Coding Agent; known security limitations listed. Risk-based CLI defaults must be separately approved before shipping capabilities; policy tests are mandatory without implying a completed OS Sandbox. Process-kill tests do not equal hardware power-loss validation.
 
 Do not merge a change claiming a completed capability without matching test evidence. Manual inspection and CI status are different evidence types and must not be conflated.

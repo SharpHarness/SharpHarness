@@ -9,7 +9,7 @@
 - **Turn**：一次用户任务的完整执行，从请求排队到完成/失败/中断。
 - **Step**：ContextBuild、ModelInvocation、ToolInvocation、Compaction 或 Verification 的独立执行单元。
 
-Session 不能等同一个 `ChatAsync` 请求。默认每个 Session 同时最多一个活动 Turn；跨 Session 并发运行。**ADR-0002 已批准**：活动 Turn 存在时新的 `StartTurn` 直接返回明确的 `Busy` 拒绝结果，不会创建第二个 Turn，不会隐式排队，也不会自动视为 `SteerTurn`；原活动 Turn 不受影响。
+Session 不能等同一个 `ChatAsync` 请求。**C01 已批准**：同一 Runtime 内每个 SessionId 只允许一个控制句柄/一个逻辑 Actor；该 Session 已被控制时第二个 `OpenSession` 必须返回 `SessionAlreadyOpen`，不可隐式共享控制权；多个独立只读事件订阅者可以观察同一个 Session，不获得提交命令或 Dispose 控制句柄的权利。释放控制权后可以按恢复协议重新打开，具体关闭语义待 C06 确认。此处不承诺跨进程或分布式所有权协调。默认每个 Session 同时最多一个活动 Turn；跨 Session 并发运行。**ADR-0002 已批准**：活动 Turn 存在时新的 `StartTurn` 直接返回明确的 `Busy` 拒绝结果，不会创建第二个 Turn，不会隐式排队，也不会自动视为 `SteerTurn`；原活动 Turn 不受影响。
 
 ## 2. Actor / Mailbox
 

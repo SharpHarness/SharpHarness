@@ -6,8 +6,8 @@
 
 | Contract | Required semantics | Notes |
 | --- | --- | --- |
-| `IAgentRuntime` | Create/open Session, inject service set, honor lifecycle | Does not dictate UI or provider |
-| `IAgentSession` | Stable `SessionId`; submit command; subscribe; dispose | One active Turn, single state writer |
+| `IAgentRuntime` | Create/open Session, inject service set, honor lifecycle | C01 Accepted: exclusive controller per SessionId within one Runtime; second OpenSession returns `SessionAlreadyOpen` |
+| `IAgentSession` | Stable `SessionId`; submit command; subscribe; dispose | C01 Accepted: sole control handle within Runtime; independent subscribers have no command/control ownership; one active Turn, single writer |
 | `AgentCommand` | Version, stable `CommandId`, `SessionId`, payload | Must detect duplicate submissions (ADR-0003); exact retention and conflict policy pending |
 | `CommandReceipt` | Accepted/rejected, status, correlation/Turn ID if available | Acknowledges submission, NOT completion; `StartTurn` while active MUST reject with `Busy` (ADR-0002/0003) |
 | `AgentNotification` | Typed durable fact delivery or ephemeral stream item, per-subscription | Broadcast semantics, no shared competing readers; ephemeral replay not guaranteed (ADR-0003) |
@@ -28,6 +28,8 @@
 **ADR-0005 accepted storage constraints:** `SharpHarness.Core` must remain SQLite-independent. Default first production-grade local adapter is `Microsoft.Data.Sqlite` using SQLite `journal_mode=WAL` and `synchronous=FULL`. Journal is append-only durable facts; optional Snapshots are coherent derived state with applied Sequence. Journal, version counter, command deduplication and related state/index updates must have documented atomicity. External tool actions are never part of an SQLite transaction; missing trustworthy terminal facts after possible execution imply `Unknown` and no blind retry. Table structure, connection policy, busy timeout, event-retention/compaction and precise transactional API remain pending detailed contract review.
 
 **ADR-0006 accepted security constraints:** Every runtime-mediated ToolInvocation requires registered tool resolution, argument/schema validation, effective resource scope, Policy Allow/Deny/Ask, bound Approval for Ask, successful SQLite journal intent commit before possible side effects, and controlled execution. Deny/invalid/unknown/missing approvals fail closed without Executor dispatch. Approval correlates exact Session, Turn, InvocationId, tool identity/version, canonical arguments, resolved scope, capability class and expiry; exact DTOs and scope canonicalization remain to be designed. Policy/Approval are **not** an OS Sandbox; malicious in-process code can bypass the managed runtime entirely and is outside the claimed protection boundary. CLI default permission matrix is not yet approved.
+
+**C01 Accepted (2026-10-20):** one Runtime MAY own many Sessions concurrently, but at most one controlling `IAgentSession` handle/Actor per SessionId. Another same-Runtime `OpenSession` MUST return `SessionAlreadyOpen` rather than reuse or create a competing actor. Multiple independent read-only event subscriptions are allowed and do not acquire Session control ownership. Reopening after ownership is properly released is permitted subject to C06 final disposal rules. This local-Runtime guarantee does NOT imply a working cross-process/distributed lock. Public signatures and exact observation handle types remain Draft.
 
 ## 2. Required result and state semantics
 
