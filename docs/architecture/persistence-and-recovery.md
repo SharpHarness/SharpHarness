@@ -20,7 +20,9 @@ Session 持久化不仅保存聊天记录，还需要保存能重建执行状态
 
 生产级默认连接须验证 `PRAGMA journal_mode=WAL`，并对每个写连接确保 `PRAGMA synchronous=FULL`；存在外键时建议使用 `PRAGMA foreign_keys=ON` 并验证所需连接配置。禁止将 WAL+NORMAL 当作满足本 ADR 的默认实现；底层存储设备不正确履行同步保证时不承诺绝对断电持久性。
 
-连接/事务应短小、有界；数据库锁竞争超时、写失败和 I/O 阻塞必须可观察。`Microsoft.Data.Sqlite` 的 ADO.NET 异步方法并不代表 SQLite 提供非阻塞磁盘 I/O，不能在 Session Actor 的命令邮箱循环中执行长耗时存储操作。Storage 服务可使用独立执行调度，但 Session 状态转换与提交顺序必须由 Actor 协调。
+连接/事务应短小、有界；数据库锁竞争超时、写失败和 I/O 阻塞必须可观察。`Microsoft.Data.Sqlite` 的 ADO.NET 异步方法并不代表 SQLite 提供非阻塞磁盘 I/O，不能在 Session Actor 的命令邮箱循环中执行长耗时存储操作。
+
+**C04 已批准：**Actor 是唯一 Session 状态决策者，Storage Executor 仅在独立执行上下文中提交由 Actor 准备的不可变事务请求，返回具有关联 ID 和 Turn/Session 代次的提交结果；逻辑状态转换在 Actor 串行处理。单事务涉及的 Journal/Sequence/Version、命令回执、派生状态索引保持原子一致并执行 expected-version/sequence 防护。执行潜在副作用前必须获得可信 Commit 成功结果，且 Actor 随后立即重新检查 Turn 未取消/终止、Invocation 代次和有效授权。SQLite 提交成功而用户已中断时不能派发未开始的工具；对延迟完成回调不允许修改终态或重新调度。提交失败/状态不确定时一律禁止派发；意图已提交不代表工具一定启动。事务绝不跨越实际外部工具执行。
 
 默认 WAL 数据库在本地使用，不支持将其作为多主机通过网络文件系统共享的数据库。跨平台发布必须验证 Native SQLite 加载；Native AOT 留待单独里程碑。
 

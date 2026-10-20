@@ -15,7 +15,9 @@ Session 不能等同一个 `ChatAsync` 请求。**C01 已批准**：同一 Runti
 
 单 Session 一个逻辑 Actor 管理可变状态。通过有界 Channel 输入命令；不能在 Actor 的主处理循环中直接等待完整 AgentLoop 完成，否则 `Interrupt`、`Steer`、`Approval` 无法及时处理。
 
-TurnExecutor 在独立异步执行任务中运行，其步骤结果发回 Actor 进行状态转换和事件编号。只有 Actor 写入 Session/Turn 状态；取消由 Coordinator 触发对应 CTS，同时记入中断命令以确保事实一致性。内部完成通知也进入同一串行状态通道。
+TurnExecutor 在独立异步执行任务中运行，其步骤结果发回 Actor 进行状态转换和事件编号。只有 Actor 决定 Session/Turn 状态；取消由 Coordinator 触发对应 CTS，同时记入中断命令以确保事实一致性。内部完成通知也进入同一串行状态通道。
+
+**C04 已批准：**Actor 负责唯一逻辑状态写入、事件编号及待持久化转移的决策。SQLite I/O 在独立执行上下文处理，由带有关联 ID、Session/Turn 代次的内部结果通知返回 Actor；Storage Worker 不是第二个状态决策者。邮箱不得同步等待耗时磁盘操作；提交结果仍需由 Actor 串行处理，并维持每 Session 的事务顺序及 expected Version/Sequence 冲突规则。对可能产生副作用的工具，先确认预执行意图成功提交，再由 Actor 重新核实当前 Turn 未终止/取消、审批仍有效及 Invocation 代次匹配，方可调度 Executor。提交失败/不确定禁止派发；若提交成功但中途已经处理 Interrupt，未派发的工具也不能启动。迟到或重复的完成回调不得改写终态或启动已作废工具。即使意图已持久化，也不等于工具已经实际执行；崩溃恢复需按可信执行事实分类处理。
 
 ## 3. Command 语义（候选）
 

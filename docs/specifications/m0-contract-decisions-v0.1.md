@@ -68,16 +68,26 @@ Each decision below is **Proposed** until explicitly approved; use **MUST**, **M
 
 **Approved resolution C03-A:** `FromBeginning`, exclusive `AfterSequence(n)`, and `LiveOnly`; committed durable replay-to-live MUST be gap-free within the retained journal, with independent multi-subscriber broadcast and per-subscriber bounded buffering. Overflow of a slow durable subscriber causes **explicit** disconnect and cursor-based recovery, never unbounded growth, actor blockage or silent durable loss. Ephemeral loss is allowed only with appropriate observable loss signaling.
 
-## C04 · Actor and durable-store coordination — RECOMMEND APPROVE
+## C04 · Actor and durable-store coordination — ACCEPTED (product owner, 2026-10-20)
 
-- Only the Actor commits logical state transitions and assigns next durable sequence; storage can run on a separate executor/worker so long synchronous SQLite I/O does not block the mailbox.
-- All durable state changes relied upon for side-effect dispatch MUST cross a **commit acknowledgement barrier**. A `Prepare/Start ToolInvocation` fact is written before beginning any mutating operation. Failed or uncertain acknowledgement MUST fail closed. After a crash, an operation that may have executed but lacks a trustworthy terminal fact is `Unknown`; never blindly retry.
-- The transaction that records a command admission/receipt, corresponding durable facts, next Sequence and derived state must preserve atomic semantics as specified for that transition. Storage must reject stale expected Sequence/Version and never invent missing facts.
-- An Actor may continue processing `InterruptTurn` and approval messages while an asynchronous persistence operation is outstanding, but it MUST NOT commit contradictory state or release a tool for execution before the applicable transaction completes. Internal storage completion carries a correlation/generation token so late callbacks cannot mutate a closed/superseded Turn.
-- The **storage executor does not become a second Session state writer**: it performs requests prepared by the Actor and returns results. The Actor decides transitions.
-- No exactly-once claim for external Shell/Git/filesystem changes. WAL + FULL is the production SQLite adapter baseline from ADR-0005, not a property of Fake Store.
+**Approved resolution C04-A:** the Session Actor is the **sole authority for mutable Session/Turn state and durable event sequencing**. SQLite I/O runs outside the Actor mailbox on a separately scheduled storage execution path. Storage results are returned as correlated internal messages and processed by the Actor. Successful durable commit is a **mandatory execution barrier**, but is **not itself permission to dispatch** a side-effect Tool; the Actor must revalidate current Turn/Invocation status immediately before releasing an operation. Failure or uncertainty fails closed, and a late completion must never mutate a terminated/superseded Turn.
 
-**Review question C04-A:** Approve commit-acknowledged facts and actor-serialized state changes while permitting a separate storage executor? **Recommendation:** yes.
+### Ordering and responsibility
+
+1. The Actor selects the logical transition, expected Session Version/Sequence and the immutable facts/index updates to submit. It remains the only logical state decision-maker; a Storage Executor performs I/O, version checks and atomic writes but cannot invent new Session transitions or dispatch tools.
+2. SQLite Journal facts, next Sequence/version, command admission/receipt and related derived indexes belonging to a given logical transaction MUST commit atomically. A stale expected version/sequence is a visible conflict, not an occasion for the Storage Executor to silently renumber or overwrite an event.
+3. SQLite I/O and lock waits MUST NOT block the mailbox's ability to process incoming `InterruptTurn` or `ResolveApproval`. Offloading I/O MUST preserve per-Session durable operation ordering; overlapping requests must not publish inconsistent transitions.
+4. A storage completion notification MUST be correlated with the pending operation and **Turn/Session generation**, so an old or duplicate callback cannot change a terminated, canceled or superseded Turn. All such notifications go through Actor-controlled serialization, not a direct callback mutating shared state.
+5. For a side-effect-capable ToolInvocation, the approved Policy/Approval and prepared invocation identity and parameters are fixed before intent persistence. The storage call commits a `ToolInvocationPrepared/Started` or equivalent durable pre-dispatch fact. The **corresponding commit acknowledgement MUST be confirmed** before any Executor dispatch, and the Actor MUST recheck the live Turn state, cancellation status, relevant authorization validity and invocation generation immediately before dispatch.
+6. If a user interrupt/cancellation is serialized while persistence is in flight, then even a later **successful** commit cannot start a tool that has not been dispatched. The Actor records a consistent abandoned/canceled intent when feasible. Once a tool may have started, cancellation must follow the controlled Executor protocol, and uncertain external results remain `Unknown` on recovery.
+7. An explicitly failed commit or uncertain commit/acknowledgement MUST NOT release a possible side effect. The Runtime reports a structured error/uncertainty and reconciles persistent state before resuming; it MUST NOT invent a successful receipt or fact. Conversely, a committed fact cannot be published to subscribers before transaction success (C03).
+8. SQLite transactions MUST be short-lived; never hold an open write transaction during network/model/Shell/tool execution. Multiple Sessions may run concurrently even though SQLite serializes writers. `Microsoft.Data.Sqlite`'s asynchronous ADO.NET method names do not guarantee nonblocking disk I/O, so use a genuine isolated storage execution context as needed.
+
+### Crash interpretation and deferred detail
+
+Committed *intent* does not prove actual dispatch or completion. If the journal has enough trusted evidence that dispatch never happened, recovery may record an abandoned intent; where a side effect **might** have happened and no trusted terminal result exists, return `Unknown` and **never** blindly retry. The detailed pre-dispatch/dispatch event names, scheduling mechanism (dedicated worker, Channel, dispatcher), SQLite DDL, busy timeout, exact DTOs and terminal-state reconciliation API remain subject to later implementation contract review. No exactly-once guarantee for arbitrary external operations is asserted.
+
+**Accepted invariants to test:** SQLite callback arriving after Interrupt/Dispose must not restart tools or mutate terminal state; storage failure/uncertain commit prevents dispatch; successful commit followed by cancellation before dispatch prevents execution; interleaved per-Session requests preserve committed ordering while independent Sessions remain responsive.
 
 ## C05 · Approval, Tool and failure authority — RECOMMEND APPROVE
 
@@ -113,7 +123,7 @@ Reject the alternative of `Detach` as the implicit default because it can contin
 | C01 | Public root & exclusive Session ownership | exclusive control per Runtime; second Open rejects SessionAlreadyOpen; independent event subscribers permitted | **Accepted (2026-10-20)** |
 | C02 | Commands, receipts, persistent idempotence | stable `(SessionId, CommandId)` key, immutable Accepted/deterministic Rejected receipt incl. Busy; conflict on payload; uncertain store outcome never faked | **Accepted (2026-10-20)** |
 | C03 | Durable cursor and multi-subscriber backpressure | FromBeginning / exclusive AfterSequence(n) / LiveOnly; committed facts gap-free; bounded independent broadcast; explicit overflow/reconnect | **Accepted (2026-10-20)** |
-| C04 | Actor ↔ store commit ordering | Actor sole state writer; async worker; required durable barrier | **Proposed** |
+| C04 | Actor ↔ store commit ordering | Actor sole state writer; independently scheduled storage I/O; correlated commit result, revalidate live Turn before dispatch, fail-closed late callbacks | **Accepted (2026-10-20)** |
 | C05 | Approval/tool authorization & failure | fixed gates; scope-bound approval; Unknown not retried | **Proposed** |
 | C06 | Session disposal behavior | Cancel + bounded cleanup; no implicit detach | **Proposed** |
 | C07 | Versions & errors | structured versioned contracts; fail closed | **Proposed** |
@@ -139,6 +149,9 @@ Reject the alternative of `Detach` as the implicit default because it can contin
 | CT-015 | Subscription modes and live boundary | FromBeginning / AfterSequence(n) / LiveOnly deliver correct ranges; concurrent commit at transition causes no gap |
 | CT-016 | Unavailable retained event history | out-of-range/compacted cursor fails explicitly, no silent omission |
 | CT-017 | Ephemeral delta coalescing and overflow | loss is signaled; deltas cannot masquerade as durable facts |
+| CT-018 | Cancel after durable intent commit before dispatch | even when intent commit succeeds, Actor rechecks canceled Turn and Executor is never invoked |
+| CT-019 | Late or duplicate storage completion | callback for terminated/superseded Turn is ignored for illegal state transitions and cannot restart a tool |
+| CT-020 | SQLite conflict and slow storage interleaving | atomic Journal+Sequence+receipt/index writes or explicit conflict; Actor remains able to process interrupt/approval while storage runs |
 
 **Review evidence:** deterministic fake components for M2; SQLite, subprocess and crash-injection evidence in M3; no tests have run while documents-only.
 
@@ -151,4 +164,4 @@ Reject the alternative of `Detach` as the implicit default because it can contin
 
 ## 4. Review workflow
 
-The product owner decides remaining Proposed C04–C07 or requests changes. C01–C03 were explicitly Accepted on 2026-10-20 and synchronized with the public-contract catalog, runtime protocol and test strategy. When all C01–C07 have been approved, synchronize the remaining documents, revise the M0 consistency report, then conduct a second static consistency audit. M0 can be signed off **only after that review**. M1/T001 implementation still needs an explicit separate owner authorization.
+The product owner decides remaining Proposed C05–C07 or requests changes. C01–C04 were explicitly Accepted on 2026-10-20 and synchronized with the public-contract catalog, runtime protocol, persistence/recovery and test strategy. When all C01–C07 have been approved, synchronize the remaining documents, revise the M0 consistency report, then conduct a second static consistency audit. M0 can be signed off **only after that review**. M1/T001 implementation still needs an explicit separate owner authorization.
