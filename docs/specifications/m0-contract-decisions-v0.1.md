@@ -89,16 +89,24 @@ Committed *intent* does not prove actual dispatch or completion. If the journal 
 
 **Accepted invariants to test:** SQLite callback arriving after Interrupt/Dispose must not restart tools or mutate terminal state; storage failure/uncertain commit prevents dispatch; successful commit followed by cancellation before dispatch prevents execution; interleaved per-Session requests preserve committed ordering while independent Sessions remain responsive.
 
-## C05 · Approval, Tool and failure authority — RECOMMEND APPROVE
+## C05 · Approval, Tool and failure authority — ACCEPTED (product owner, 2026-10-20)
 
-- Every **runtime-mediated** invocation resolves tool identity/version; validates schema and canonical effective resource scope; receives Policy verdict `Allow / Deny / Ask`; if Ask, validates exact Approval; then persists execution intent when side effects are possible; only then dispatches controlled Executor.
-- Approval binds `SessionId`, `TurnId`, `InvocationId`, tool ID/version, canonical argument fingerprint, resolved scope, permissions and expiration. The Runtime MUST revalidate an approval after resumption and before dispatch; expired, mismatched, interrupted/cancelled or otherwise stale approvals fail closed.
-- `ResolveApproval` is a Command, serialized through Actor, not free-form model text. Duplicate exact decisions can return stable receipts; conflicting or late decisions cannot authorize execution.
-- Deny/Ask failure does not invoke Executor. Tool result outcomes include Succeeded, Failed, Rejected, Cancelled, Unknown; Unknown specifically covers plausible external effects without a trustworthy terminal fact.
-- **Security scope:** mandatory gates apply to runtime-mediated ToolInvocations. Untrusted native/process or arbitrary in-process .NET code remains outside claimed OS isolation. A working-directory limit or tool metadata such as `readOnly` does not amount to a sandbox.
-- Default CLI Allow/Ask/Deny matrix, canonicalization/TOCTOU details, subprocess policy and safe workspace grants **require separate M3 contract**; they are *not* silently approved by this supplement.
+**Approved resolution C05-A:** a runtime-mediated ToolInvocation has a **stable InvocationId** for its logical action across event correlation and recovery. A one-time Approval is bound to that specific invocation, including Session, Turn, tool identity/version, canonical arguments, resolved effective scope, requested permissions and expiration. It cannot authorize a different call or an expanded scope. After approval the Actor MUST revalidate current Turn/invocation/authorization, then apply the C04 durable-intent Commit Barrier before Executor dispatch. Duplicate, mismatched, expired or post-cancellation approvals MUST NOT start a Tool. ToolResult distinctly represents `Succeeded`, `Failed`, `Rejected`, `Cancelled` and `Unknown`. An `Unknown` external side effect is **never** blindly retried.
 
-**Review question C05-A:** Approve these externally observable authority and failure guarantees, deferring concrete CLI policy defaults? **Recommendation:** yes.
+### Tool and approval identity
+
+1. Distinguish provider-supplied `ToolCallId` (model response correlation), runtime-assigned stable `InvocationId` (one logical execution, including recovery), and `ApprovalId` (specific request for authorization). Do not generate a new InvocationId to circumvent an existing uncertain or rejected state.
+2. Before Policy, resolve a registered tool identity and version, validate arguments against schema, and derive actual effective resource scope and requested capabilities. Plugin-supplied descriptive metadata or LLM declarations are not proof of harmlessness.
+3. If Policy returns `Deny` or errors, Executor is not called. `Ask` creates a durable pending approval; only an authenticated `ResolveApproval` command correlated with that pending request can produce a decision. Explicit denial and expiration fail closed.
+4. The authorization snapshot binds `SessionId`, `TurnId`, `InvocationId`, stable tool ID/version, canonical argument fingerprint, resolved resource scope, capability/permission set and expiry. **ApprovalId** correlates a particular authorization request and its decision. If any bound execution attribute changes, the approval is invalid for that invocation and fresh evaluation/approval is required.
+5. A duplicate exact resolution follows C02 command idempotency; a conflicting, late, expired, cancelled or already-finalized approval can neither authorize an alternative invocation nor duplicate dispatch. Approval status transitions are serialized by the Session Actor and recorded as applicable durable facts.
+6. Immediately before dispatch, recheck live Turn state, invocation generation, bound argument/scope and policy/approval validity, and require an acknowledged successful SQLite intent commit per C04. A persisted approval **alone** never authorizes immediate execution.
+7. Status semantics: `Succeeded` = trustworthy completion; `Failed` = confirmed failed operation; `Rejected` = refused before dispatch; `Cancelled` = cancelled with sufficiently known effect state; `Unknown` = possible external effect without trustworthy completion/effect evidence. Process timeout, crash, disconnect or cancellation must not be mapped to `Failed` or `Cancelled` when effects remain uncertain. Recovery uses reconciliation or user decision, never blind retry.
+8. **Security boundary:** mandatory checks govern SharpHarness-managed ToolInvocations. No assertion is made that arbitrary malicious same-process .NET code or unsandboxed Shell commands can be confined by the managed Policy. Default CLI Allow/Ask/Deny matrix, task-level grants, canonicalization/TOCTOU strategies, process isolation and workspace trust profiles remain **M3-specific reviews**, not silently approved by C05.
+
+### Verification obligations
+
+Must test distinct ID correlation; altered arguments/tool version/effective scope invalidating approval; expiry, duplicate or late `ResolveApproval`; interruption between approval, commit and dispatch; stable InvocationId after restart; and `Unknown` effects never automatically replay. Exact C# DTO names, tool fingerprint encoding, time source, effective-scope canonicalization and default permission rules are deliberately deferred to implementation-contract review.
 
 ## C06 · Session disposal and cancellation — OWNER DECISION REQUIRED
 
@@ -124,7 +132,7 @@ Reject the alternative of `Detach` as the implicit default because it can contin
 | C02 | Commands, receipts, persistent idempotence | stable `(SessionId, CommandId)` key, immutable Accepted/deterministic Rejected receipt incl. Busy; conflict on payload; uncertain store outcome never faked | **Accepted (2026-10-20)** |
 | C03 | Durable cursor and multi-subscriber backpressure | FromBeginning / exclusive AfterSequence(n) / LiveOnly; committed facts gap-free; bounded independent broadcast; explicit overflow/reconnect | **Accepted (2026-10-20)** |
 | C04 | Actor ↔ store commit ordering | Actor sole state writer; independently scheduled storage I/O; correlated commit result, revalidate live Turn before dispatch, fail-closed late callbacks | **Accepted (2026-10-20)** |
-| C05 | Approval/tool authorization & failure | fixed gates; scope-bound approval; Unknown not retried | **Proposed** |
+| C05 | Approval/tool authorization & failure | stable InvocationId, exact bounded Approval, Actor/C04 revalidation and distinct Succeeded/Failed/Rejected/Cancelled/Unknown results | **Accepted (2026-10-20)** |
 | C06 | Session disposal behavior | Cancel + bounded cleanup; no implicit detach | **Proposed** |
 | C07 | Versions & errors | structured versioned contracts; fail closed | **Proposed** |
 
@@ -152,6 +160,9 @@ Reject the alternative of `Detach` as the implicit default because it can contin
 | CT-018 | Cancel after durable intent commit before dispatch | even when intent commit succeeds, Actor rechecks canceled Turn and Executor is never invoked |
 | CT-019 | Late or duplicate storage completion | callback for terminated/superseded Turn is ignored for illegal state transitions and cannot restart a tool |
 | CT-020 | SQLite conflict and slow storage interleaving | atomic Journal+Sequence+receipt/index writes or explicit conflict; Actor remains able to process interrupt/approval while storage runs |
+| CT-021 | ToolCallId/InvocationId/ApprovalId correlation | stable one-logical-action InvocationId survives replay and is distinct from provider ToolCallId and specific ApprovalId |
+| CT-022 | Tool identity/args/scope/expiry changed after approval | revalidation fails closed; executor cannot start with stale or mismatched approval |
+| CT-023 | Tool outcome uncertain after interruption/crash | Unknown preserves possible side effects and cannot trigger automatic retry; Failed/Cancelled not substituted for uncertain effects |
 
 **Review evidence:** deterministic fake components for M2; SQLite, subprocess and crash-injection evidence in M3; no tests have run while documents-only.
 
@@ -164,4 +175,4 @@ Reject the alternative of `Detach` as the implicit default because it can contin
 
 ## 4. Review workflow
 
-The product owner decides remaining Proposed C05–C07 or requests changes. C01–C04 were explicitly Accepted on 2026-10-20 and synchronized with the public-contract catalog, runtime protocol, persistence/recovery and test strategy. When all C01–C07 have been approved, synchronize the remaining documents, revise the M0 consistency report, then conduct a second static consistency audit. M0 can be signed off **only after that review**. M1/T001 implementation still needs an explicit separate owner authorization.
+The product owner decides remaining Proposed C06–C07 or requests changes. C01–C05 were explicitly Accepted on 2026-10-20 and synchronized with the public-contract catalog, Tool/Runtime architecture and test strategy. When all C01–C07 have been approved, synchronize the remaining documents, revise the M0 consistency report, then conduct a second static consistency audit. M0 can be signed off **only after that review**. M1/T001 implementation still needs an explicit separate owner authorization.

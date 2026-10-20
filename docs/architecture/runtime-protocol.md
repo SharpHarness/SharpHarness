@@ -26,9 +26,11 @@ TurnExecutor 在独立异步执行任务中运行，其步骤结果发回 Actor 
 | `StartTurn` | Session idle | 接收并开始一个新 Turn；接收回执不是完成信号。若已有活动 Turn，返回 `Busy`，不排队、不改变当前 Turn（ADR-0002） |
 | `SteerTurn` | Turn active | 入队补充用户约束，在下一个安全模型请求检查点生效 |
 | `InterruptTurn` | Turn active | 触发取消，尽力终止子调用，并产生终态 |
-| `ResolveApproval` | 有匹配的待审批 ID | ADR-0006：匹配 Session/Turn/Invocation、工具身份/版本、参数与解析后的作用域、有效期；重复、过期、被取消或载荷不匹配必须安全拒绝或幂等处理，不启动错误的工具 |
+| `ResolveApproval` | 有匹配的待审批 ID | C05 Accepted：审批绑定 Session/Turn/稳定 InvocationId、工具身份/版本、规范化参数、有效资源范围、授权能力及有效期；重复同决策按 C02 幂等返回，冲突、过期、取消后或不匹配时绝不派发 Executor |
 
 **ADR-0003、C02 已批准**：每条命令必须有稳定的 `CommandId`，以 `(SessionId, CommandId)` 去重。具有可合法标识的命令首次确定接受或拒绝（包括 `Busy`）时，必须将规范化载荷指纹、原始回执及相关持久事实原子记录；同 ID 同载荷重试返回原回执、不重新执行，即使 Session 后来空闲也不得将原 `Busy` 变为 `Accepted`。同 ID 不同载荷返回 `DuplicateCommandConflict`，不改变原结果；可靠存储重启后仍需保留已存回执直到 Session 的明确保留策略允许清理。存储失败或提交结果不确定时，不能声称原回执已可靠提交，也不能授权副作用；使用原 CommandId 重试并先核对持久记录。身份无效而无法安全去重的拒绝不承诺持久化。`SubmitAsync` 的 CancellationToken 仅取消“等待提交/回执”，不能隐式取消已经接受的 Turn；仅通过 `InterruptTurn` 请求终止。
+
+**C05 已批准：**Runtime 使用稳定 `InvocationId` 标识一次逻辑工具执行，不得重启后换身份来绕开已有 Unknown/拒绝状态。模型的 `ToolCallId` 与审批的 `ApprovalId` 是独立关联 ID。审批通过不代表允许立刻派发，仍必须经过 C04 的存储提交确认及当前状态复核。ToolResult 必须区分 `Succeeded`/`Failed`/`Rejected`/`Cancelled`/`Unknown`，副作用状态未确定不得被降格为普通失败，也不得自动重试。具体审批参数序列化与 CLI 默认权限配置留待对应任务合同。
 
 ## 4. Turn 状态与错误
 

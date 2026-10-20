@@ -21,7 +21,7 @@ Model ToolCall
  → Normalized tool response for model
 ```
 
-**ADR-0006 已批准**：所有通过 SharpHarness 托管执行入口调用的内置工具、Coding 工具、MCP 适配工具和未来子 Agent 工具都必须走此路径；Hook 无权跨越或重排授权节点。Unknown Tool、参数无效、作用域无法确定、Policy 失败或拒绝、审批无效均须 fail closed，**不能启动 Executor**。Approval ID 与 Session/Turn、Invocation ID、精确工具身份/版本、规范化参数、解析后的资源范围、风险能力和有效期绑定；任何变更都要重新核验。审批经 ADR-0003 的 `ResolveApproval` 提交，并由 Session Actor 序列化状态。SQLite 事务未明确确认工具意图事实提交成功，不允许派发潜在副作用。
+**ADR-0006 已批准**：所有通过 SharpHarness 托管执行入口调用的内置工具、Coding 工具、MCP 适配工具和未来子 Agent 工具都必须走此路径；Hook 无权跨越或重排授权节点。Unknown Tool、参数无效、作用域无法确定、Policy 失败或拒绝、审批无效均须 fail closed，**不能启动 Executor**。**C05 已批准：**模型返回的 `ToolCallId` 仅负责关联模型调用，Runtime 为每个逻辑工具执行分配**可跨恢复保持稳定**的 `InvocationId`，`ApprovalId` 关联该次审批请求。审批绑定 Session/Turn、InvocationId、精确工具身份/版本、规范化参数指纹、解析后的有效资源范围、能力/权限与有效期；改变任一获批执行属性必须重新校验及授权，不能用新 InvocationId 绕过 Unknown 状态。`ResolveApproval` 经 Session Actor 串行处理，重复相同决定可按 C02 原回执处理，但重复、过期、取消后到达、参数/范围不匹配或冲突的审批绝不能授权错误执行。审批通过后仍须按 C04 对当前 Turn/Invocation/授权状态复核，且 SQLite 事务明确确认工具执行意图提交成功，才可派发潜在副作用。
 
 ## 3. 可信边界
 
@@ -35,12 +35,12 @@ Model ToolCall
 ## 3.1 执行权限的评审边界
 
 - **已批准机制：**Policy 必须返回 Allow / Deny / Ask；Ask 必须获得精确、未过期的 Approval 才能继续；否则 fail closed。
-- **尚待另行批准：**CLI 默认授予哪些文件读取/写入、Shell、Git 和网络权限，以及任务级信任、自动批准与审批有效期。不能由 Coding Agent 私自决定宽松默认值。
+- **尚待另行批准（M3）：**CLI 默认授予哪些文件读取/写入、Shell、Git 和网络权限，任务级信任/自动批准、授权策略配置，以及路径/符号链接 TOCTOU 防护细节。不能由 Coding Agent 私自决定宽松默认值。单次审批的实际有效期必须按 C05 验证，默认时长仍未规定。
 - 不能仅依据 `cwd`、`UseShellExecute=false`、插件 `ReadOnly` 标签或提示词规则承诺真正的资源隔离。Native Sandbox 是后续独立里程碑。
 
 ## 4. ToolResult 与故障
 
-调用结果携带 `InvocationId, ToolCallId, Status, StructuredContent, DisplayText?, Duration?, Truncated, SideEffectState`。Status 应区分 Success、Rejected、Failed、Cancelled、Unknown。截断后的长输出必须明确标记。
+调用结果携带 `InvocationId, ToolCallId, Status, StructuredContent, DisplayText?, Duration?, Truncated, SideEffectState`。**C05 已批准：**状态语义为 `Succeeded`、`Failed`、`Rejected`、`Cancelled`、`Unknown`；`Cancelled` 不等于保证没有副作用，必须另行检查 SideEffectState；无法确认是否产生外部效果时归入 `Unknown`，不能冒充已确认失败。截断后的长输出必须明确标记。
 
 对已经可能产生外部副作用的操作，取消、崩溃、网络中断不可直接归为 Failed；只要无法确认提交结果，就设为 Unknown。未知状态不触发自动重试。使用稳定 Invocation ID，允许适配幂等工具。
 
