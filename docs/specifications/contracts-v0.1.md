@@ -15,17 +15,19 @@
 | `IAgentModelClient` | Stream normalized model responses; cancellation; declared capabilities | Model provider implementation injected |
 | `ModelRequest` | Immutable messages, tools, provider options, budgets | Preserve multimodal and provider extensions |
 | `ModelEvent` | Text/ToolCall fragments, completion, usage/error | Incomplete ToolCall never runnable |
-| `IAgentTool` | Definition + execute request → typed result | Does **not** authorize itself |
+| `IAgentTool` | Definition + execute request → typed result | Does **not** authorize itself; runtime-mediated invocations always traverse ADR-0006 mandatory policy/approval gates |
 | `ToolDefinition` | Stable tool name, schema, capabilities, version | Metadata is not proof of safety |
 | `ToolInvocation` | Invocation ID, ToolCall ID, CallIndex, validated args, scope, origin | Idempotency key is stable across recovery |
 | `ToolResult` | Status, normalized content, error, truncation, side-effect state | Status may be Unknown |
-| `IPolicyEvaluator` | Policy verdict Allow/Deny/Ask + reason | ADR-0004: mandatory Tool-stage checkpoint, cannot be omitted/reordered; precise authorization remains ADR-0006 |
+| `IPolicyEvaluator` | Mandatory Policy verdict Allow/Deny/Ask with explicit reason | ADR-0006 Accepted: fail closed on unknown scope, denied/failed policy or invalid approval; cannot be skipped/reordered |
 | `IContextContributor` | Contribute prioritized context parts into builder | ADR-0004: typed stage-specific contract, no mutation of Session history; ordering/error policy TBD |
 | `ISessionStore` | Append/replay durable facts, optimistic expected Sequence, command deduplication and optional versioned snapshots | ADR-0005: semantics storage-agnostic; default local SQLite adapter, transactional consistency required |
 
 **ADR-0004 approved architecture constraints:** Core fixes execution phase boundaries, lifecycle and mandatory checkpoints; standard Context, Model, Tool and Event/Observability components are registered by explicit DI contracts. No universal `IMiddleware` or all-powerful Hook may wrap the Agent Loop. Telemetry observers may fail independently without hiding critical Journal failures. Public interfaces, DI lifetimes, ordering and error policies remain unapproved implementation details.
 
 **ADR-0005 accepted storage constraints:** `SharpHarness.Core` must remain SQLite-independent. Default first production-grade local adapter is `Microsoft.Data.Sqlite` using SQLite `journal_mode=WAL` and `synchronous=FULL`. Journal is append-only durable facts; optional Snapshots are coherent derived state with applied Sequence. Journal, version counter, command deduplication and related state/index updates must have documented atomicity. External tool actions are never part of an SQLite transaction; missing trustworthy terminal facts after possible execution imply `Unknown` and no blind retry. Table structure, connection policy, busy timeout, event-retention/compaction and precise transactional API remain pending detailed contract review.
+
+**ADR-0006 accepted security constraints:** Every runtime-mediated ToolInvocation requires registered tool resolution, argument/schema validation, effective resource scope, Policy Allow/Deny/Ask, bound Approval for Ask, successful SQLite journal intent commit before possible side effects, and controlled execution. Deny/invalid/unknown/missing approvals fail closed without Executor dispatch. Approval correlates exact Session, Turn, InvocationId, tool identity/version, canonical arguments, resolved scope, capability class and expiry; exact DTOs and scope canonicalization remain to be designed. Policy/Approval are **not** an OS Sandbox; malicious in-process code can bypass the managed runtime entirely and is outside the claimed protection boundary. CLI default permission matrix is not yet approved.
 
 ## 2. Required result and state semantics
 
@@ -46,9 +48,9 @@ Actor owns mutable Session state; asynchronous model/tool tasks return internal 
 - Use explicit discriminator and `SchemaVersion` for commands, facts and notifications.
 - Unknown command types should fail clearly; unknown optional payload fields should be preserved or rejected by specified forward-compat policy, never silently alter security meaning.
 - Time is `DateTimeOffset` UTC for machine records; public IDs opaque, not derived from paths.
-- Tool name and JSON Schema are stable per invocation; argument JSON validation happens before Policy.
+- Tool name and JSON Schema are stable per invocation; argument JSON validation and effective scope resolution happen before Policy. Failed Policy or stale/invalid Approval cannot start Executor; an uncertain durable pre-execution commit also prevents tool dispatch.
 - Secret fields, private prompts and internal reasoning must not leak into logs by default.
 
 ## 5. Contract review gates before coding
 
-Decide final DTO types, JSON serializer strategy/AOT constraints, SQLite transaction boundaries/schema/constraints and verified WAL/FULL configuration, persistence consistency guarantees, event history replay API/cursor shape, duplicate CommandId retention and payload-conflict behavior, notification backpressure, native runtime packaging, busy/backup/migration policy, `CommandReceipt` error taxonomy, extension metadata policy, DI registration/lifetimes, contributor ordering and stage-specific failure policies, and API versioning. Every decision must be documented before public NuGet publication.
+Decide final DTO types, JSON serializer strategy/AOT constraints, SQLite transaction boundaries/schema/constraints and verified WAL/FULL configuration, persistence consistency guarantees, event history replay API/cursor shape, duplicate CommandId retention and payload-conflict behavior, notification backpressure, native runtime packaging, busy/backup/migration policy, `CommandReceipt` error taxonomy, extension metadata policy, DI registration/lifetimes, contributor ordering and stage-specific failure policies, threat model/approval binding, default CLI permission matrix, Sandbox boundary disclosure, and API versioning. Every decision must be documented before public NuGet publication.

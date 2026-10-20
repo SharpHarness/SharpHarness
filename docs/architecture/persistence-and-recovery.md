@@ -26,7 +26,7 @@ Session 持久化不仅保存聊天记录，还需要保存能重建执行状态
 
 ## 3. 外部副作用恢复
 
-在首次执行修改类工具前先写入 `ToolInvocationPrepared/Started`。完成后写 `ToolInvocationCompleted`。崩溃可能发生于真实修改成功之后、终态写入之前，此时恢复状态是 **Unknown**，不能自动再执行一次。
+**ADR-0006 已批准**：托管 Tool Pipeline 的实际执行前，先验证参数与作用域并通过 Policy/必要审批；对可能产生副作用的工具，必须在 SQLite 成功提交 `ToolInvocationPrepared/Started` 或等价的执行意图事实后才启动 Executor。完成后写 `ToolInvocationCompleted`。崩溃可能发生于真实修改成功之后、终态写入之前，此时恢复状态是 **Unknown**，不能自动再执行一次。
 
 恢复策略：
 1. 读取 Journal 重建执行事实。

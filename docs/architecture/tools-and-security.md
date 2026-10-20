@@ -1,6 +1,6 @@
 # Tool Runtime and Security Boundaries v0.1
 
-**Status:** Draft | Related: ADR-0006.
+**Status:** Draft (implementation details) | ADR-0006 Accepted: mandatory governed tool path and explicit no-sandbox limitation.
 
 ## 1. 职责
 
@@ -15,13 +15,13 @@ Model ToolCall
  → Determine actual execution scope
  → Policy evaluate (allow / deny / ask)
  → Durable approval request + await decision (if ask)
- → Durable invocation intent (before side-effect)
+ → Commit durable invocation intent in SQLite (before side-effect)
  → Controlled executor with timeout / cancellation / output limits
  → Durable terminal result (or Unknown)
  → Normalized tool response for model
 ```
 
-所有通道（内置工具、外部 MCP、插件、未来子 Agent）必须走此路径；Hook 无权跨越或重排授权节点。拒绝或超时不得调用 Executor。Approval ID 与精确工具 ID、参数摘要、工作目录、风险能力、Turn 和有效期绑定，改变任何要素须重新评估。
+**ADR-0006 已批准**：所有通过 SharpHarness 托管执行入口调用的内置工具、Coding 工具、MCP 适配工具和未来子 Agent 工具都必须走此路径；Hook 无权跨越或重排授权节点。Unknown Tool、参数无效、作用域无法确定、Policy 失败或拒绝、审批无效均须 fail closed，**不能启动 Executor**。Approval ID 与 Session/Turn、Invocation ID、精确工具身份/版本、规范化参数、解析后的资源范围、风险能力和有效期绑定；任何变更都要重新核验。审批经 ADR-0003 的 `ResolveApproval` 提交，并由 Session Actor 序列化状态。SQLite 事务未明确确认工具意图事实提交成功，不允许派发潜在副作用。
 
 ## 3. 可信边界
 
@@ -30,7 +30,13 @@ Model ToolCall
 - Policy 判断用户是否授权，**不等于** OS Sandbox 的权限隔离；没有沙箱时不得宣传“已隔离”。
 - Shell 命令不得通过未经审查的字符串拼接引入额外命令；执行策略必须约束 cwd、环境变量、进程树、输出大小和取消语义。
 - 工作目录外读写、网络访问、子进程执行等应有独立政策能力，默认高风险行为需审批。
-- 插件内托管代码本身可能任意访问进程权限；真正隔离需要进程/OS 级措施。
+- **进程内受信任扩展限制：**任意第三方 .NET 代码如果被加载到宿主的同一高权限进程，可以绕开 SharpHarness 的托管工具调用入口直接调用 OS API。授权管线仅强制约束**由 Runtime 托管的 ToolInvocation**，不是任意恶意扩展的沙箱。未知/不可信代码必须另用进程级/OS 级隔离或不加载。首版没有完整 OS Sandbox，CLI 必须如实展示实际权限边界。
+
+## 3.1 执行权限的评审边界
+
+- **已批准机制：**Policy 必须返回 Allow / Deny / Ask；Ask 必须获得精确、未过期的 Approval 才能继续；否则 fail closed。
+- **尚待另行批准：**CLI 默认授予哪些文件读取/写入、Shell、Git 和网络权限，以及任务级信任、自动批准与审批有效期。不能由 Coding Agent 私自决定宽松默认值。
+- 不能仅依据 `cwd`、`UseShellExecute=false`、插件 `ReadOnly` 标签或提示词规则承诺真正的资源隔离。Native Sandbox 是后续独立里程碑。
 
 ## 4. ToolResult 与故障
 
@@ -44,4 +50,4 @@ Model ToolCall
 
 ## 6. 安全验收用例
 
-未知工具、非法 Schema、拒绝授权、重复审批、审批后参数篡改、恶意工具输出注入、cwd 越界、符号链接逃逸、命令超时/子进程未终止、海量输出、MCP 返回恶意内容、事件日志泄密。对不具备真实 OS 沙箱的第一版，应将该缺口显式列为已知限制。
+未知工具、非法 Schema、拒绝授权、重复/过期审批、审批后参数或作用域篡改、SQLite 意图提交失败、恶意工具输出试图改变授权判断、cwd 越界、符号链接逃逸、命令超时/子进程未终止、海量输出、MCP 返回恶意内容、事件日志泄密。验收应验证不可越过 Runtime 的受控授权入口，而不是声称模型对所有 Prompt Injection 免疫。对不具备真实 OS 沙箱的第一版，应将该缺口显式列为已知限制。

@@ -30,7 +30,7 @@
 | RT-013 | Journal write fails before modifying tool | No external modification starts |
 | RT-014 | Modification applied, terminal fact lost, then restore | Unknown detected; no automatic replay |
 | RT-015 | Snapshot + journal replay | Identical reconstructed facts/state and monotonic sequence |
-| RT-016 | Malicious tool output/prompt injection | Cannot override policy/system instructions |
+| RT-016 | Malicious tool output/prompt injection | Untrusted text cannot grant capabilities or bypass Policy via the managed Tool Pipeline; no unconditional claim of LLM prompt-injection immunity |
 | RT-017 | Workspace path traversal/symlink escape | Disallowed operations rejected |
 | RT-018 | Cancellation of process tree | No unmanaged child process remains where platform permits; exceptions documented |
 | RT-019 | Serialize unknown event version | Explicit error/migration, no silent fallback |
@@ -46,6 +46,11 @@
 | RT-029 | SQLite writer contention and failure | Bounded busy/lock behavior and disk failure reported; Session Actor remains responsive |
 | RT-030 | SQLite backup, restore, migration | Consistent WAL-aware backup/restore; snapshot+journal reconstruction; unknown schema version/corruption diagnosed |
 | RT-031 | SQLite native deployment matrix | Windows/Linux/macOS deployment loads native SQLite and performs real read/write/restart test without paid providers |
+| RT-032 | Tool policy deny or policy failure | Executor is never invoked; structured denial/failure recorded and no effective capabilities granted |
+| RT-033 | Approval binding, stale and replayed decision | Modified args/scope/tool, expired, duplicate or post-cancel approval cannot invoke Executor |
+| RT-034 | Tool invocation before durable intent | Side-effect Executor never starts until SQLite intent commit is confirmed; uncertain commit fails closed |
+| RT-035 | Managed adapters and extension gate ordering | Built-in/Coding/MCP ToolInvocation goes through identical validation/policy/approval gates; no managed Hook reorders security stages |
+| RT-036 | Sandbox claims / runtime boundary | Tests explicitly establish Policy is not OS isolation; untrusted in-process arbitrary .NET code excluded from protection claims |
 
 ## 3. Evidence requirements
 
@@ -56,6 +61,6 @@ For each test: source commit SHA, OS/runtime, exact command, result summary, rel
 - **M0 documentation:** architecture and ADR approved, no contradictory lifecycle rules, task boundaries clear.
 - **M1 bootstrap:** correct project graph; build and trivial test suite run on all three OS; no unsupported claims of implementation.
 - **M2 runtime:** RT-001–RT-012 and RT-020–RT-026 pass; APIs reviewed.
-- **M3 coding:** RT-013–RT-019 and RT-027–RT-031, plus realistic temporary-repository end-to-end scenarios, must pass for the first production-capable SQLite-backed Coding Agent; known security limitations listed. Process-kill tests do not equal hardware power-loss validation.
+- **M3 coding:** RT-013–RT-019 and RT-027–RT-036, plus realistic temporary-repository end-to-end scenarios, must pass for the first production-capable SQLite-backed Coding Agent; known security limitations listed. Risk-based CLI defaults must be separately approved before shipping capabilities; policy tests are mandatory without implying a completed OS Sandbox. Process-kill tests do not equal hardware power-loss validation.
 
 Do not merge a change claiming a completed capability without matching test evidence. Manual inspection and CI status are different evidence types and must not be conflated.

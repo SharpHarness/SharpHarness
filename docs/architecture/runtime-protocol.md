@@ -24,7 +24,7 @@ TurnExecutor 在独立异步执行任务中运行，其步骤结果发回 Actor 
 | `StartTurn` | Session idle | 接收并开始一个新 Turn；接收回执不是完成信号。若已有活动 Turn，返回 `Busy`，不排队、不改变当前 Turn（ADR-0002） |
 | `SteerTurn` | Turn active | 入队补充用户约束，在下一个安全模型请求检查点生效 |
 | `InterruptTurn` | Turn active | 触发取消，尽力终止子调用，并产生终态 |
-| `ResolveApproval` | 有匹配的待审批 ID | 只解除对应 Approval，重复答复必须安全拒绝或幂等处理 |
+| `ResolveApproval` | 有匹配的待审批 ID | ADR-0006：匹配 Session/Turn/Invocation、工具身份/版本、参数与解析后的作用域、有效期；重复、过期、被取消或载荷不匹配必须安全拒绝或幂等处理，不启动错误的工具 |
 
 **ADR-0003 已批准**：每条命令必须带有稳定的 `CommandId`，服务端必须检测并安全处理重复提交；回执仅表示命令是否被接受，不表示 Turn 已完成。针对同一 ID 不同载荷、去重保留期限和跨重启行为的细节仍属契约待审事项。`SubmitAsync` 的 CancellationToken 仅取消“等待提交/回执”，不能隐式取消已经接受的 Turn；仅通过 `InterruptTurn` 请求终止。
 

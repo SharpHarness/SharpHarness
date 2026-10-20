@@ -20,15 +20,15 @@
 
 - [ ] Streaming ToolCall validated before execution; all IDs correlated.
 - [ ] Provider capabilities respected without silent loss of multimodal content.
-- [ ] Every tool passes schema validation, policy, approval and controlled execution.
+- [ ] Every runtime-mediated tool passes schema **and effective scope** validation, Allow/Deny/Ask policy, applicable precise approval, durable pre-side-effect execution intent, and controlled execution.
 - [ ] Untrusted tool/plugin/remote output cannot acquire privileges.
 - [ ] Files, paths, symlinks, subprocesses, network and credentials guarded by appropriate scope.
-- [ ] No false claims of OS sandboxing or exactly-once tool execution.
+- [ ] No false claims of OS sandboxing, malicious in-process plugin isolation, full prompt-injection immunity, or exactly-once tool execution.
 
 ## Persistence and failure
 
 - [ ] Durable journal facts correctly ordered; state restoration deterministic.
-- [ ] Side-effect actions never blindly retried on uncertain completion.
+- [ ] Side-effect actions never dispatch on a failed/uncertain durable intent commit or blindly retry after uncertain completion.
 - [ ] Duplicate message/approval IDs handled safely.
 - [ ] Logs redact secrets and handle large outputs.
 
