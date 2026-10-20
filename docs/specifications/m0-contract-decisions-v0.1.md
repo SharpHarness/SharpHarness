@@ -55,7 +55,7 @@ Each decision below is **Proposed** until explicitly approved; use **MUST**, **M
 
 When reliable storage is configured, replay and transition to live delivery MUST be gap-free for committed durable facts. At-least-once re-delivery across reconnection is acceptable; consumers deduplicate by `(SessionId, Sequence)` or `EventId`. Fact events MUST be published only after their transaction commits successfully. Subscribers are broadcast consumers, never competing readers of one work queue.
 
-A slow or disconnected subscriber MUST NOT block the Session Actor or silently lose durable facts. When bounded subscriber buffering cannot keep up, signal explicit overflow/close with a last acknowledged cursor so the caller can resubscribe and replay. Ephemeral deltas may be dropped or coalesced, but any loss must be signaled to consumers expecting accurate progress; completion can be reconstructed from durable terminal events. Canceling a subscriber does not cancel the Session or another subscriber.
+A slow or disconnected subscriber MUST NOT block the Session Actor or silently lose durable facts. When bounded subscriber buffering cannot keep up, signal explicit overflow/close; the caller resubscribes from the last durable Sequence it has actually processed and retained, not an unimplemented server acknowledgement mechanism. Ephemeral deltas may be dropped or coalesced, but any loss must be signaled to consumers expecting accurate progress; completion can be reconstructed from durable terminal events. Canceling a subscriber does not cancel the Session or another subscriber.
 
 **Review question C03-A:** Approve cursor semantics and *fail/reconnect* on durable subscriber overflow, rather than unbounded buffering or blocking? **Recommendation:** yes.
 
