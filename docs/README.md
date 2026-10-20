@@ -12,7 +12,7 @@
 4. [模型与上下文](architecture/model-and-context.md)：Provider 语义、上下文构造。
 5. [工具与安全](architecture/tools-and-security.md)：验证、审批、执行。
 6. [持久化与恢复](architecture/persistence-and-recovery.md)：事件日志、副作用。
-7. [M0-B01 契约专项评审草案](specifications/m0-contract-decisions-v0.1.md)：C01、C02 已批准，C03–C07 仍待评审；[现有契约类型目录](specifications/contracts-v0.1.md) 仍为 Draft。
+7. [M0-B01 契约专项评审草案](specifications/m0-contract-decisions-v0.1.md)：C01–C03 已批准，C04–C07 仍待评审；[现有契约类型目录](specifications/contracts-v0.1.md) 仍为 Draft。
 8. [测试策略](testing/test-strategy.md)、[Review 清单](review/review-checklist.md)。
 9. [实施任务 T001](tasks/T001-bootstrap.md)：**待批准**，用于交给其他 Coding Agent。
 
@@ -27,7 +27,7 @@
 
 ## 待产品负责人批准的问题
 
-- M0-B01 已形成 [C01–C07 契约决策建议](specifications/m0-contract-decisions-v0.1.md)，其中 **C01–C02 Accepted，C03–C07 Proposed**；[M0 Architecture Review](review/m0-consistency-review.md) 保持 Changes Required，直至签署契约及完成复审。
+- M0-B01 已形成 [C01–C07 契约决策建议](specifications/m0-contract-decisions-v0.1.md)，其中 **C01–C03 Accepted，C04–C07 Proposed**；[M0 Architecture Review](review/m0-consistency-review.md) 保持 Changes Required，直至签署契约及完成复审。
 - CLI 首版是否默认开启权限审批及本地持久化？建议是。
 - 第一次开发任务是否只允许工程骨架+测试基础设施？建议是。
 - 开源许可证尚未确定；公开仓库不等于已授权他人使用/再分发。

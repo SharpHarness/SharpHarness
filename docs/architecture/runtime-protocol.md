@@ -49,6 +49,8 @@ TurnExecutor 在独立异步执行任务中运行，其步骤结果发回 Actor 
 
 **ADR-0003 已批准**：对外输出区分 **Durable facts**（TurnStarted、ToolInvocationPrepared、ApprovalResolved、ToolCompleted、TurnCompleted 等）和 **Ephemeral notifications**（TextDelta、工具进度、可选推理摘要）。持久事实在配置可靠 Session Store 时必须支持按事件游标重放；实时增量默认不保证持久化或重放。
 
-持久事实信封包含 `SchemaVersion, SessionId, TurnId?, Sequence, EventId, CorrelationId?, Timestamp, Payload`。每 Session Sequence 从同一状态写入者产生，递增且唯一。实时 TokenDelta 可以携带非持久游标，不能冒充持久事件序号。多个订阅者必须是广播而非竞争一个 `ChannelReader`；订阅者的取消、缓冲与背压处理相互隔离，慢客户端有独立背压/断线补读政策。事件重放游标只引用持久事件序号；缺乏可靠存储时不得承诺断线后可重放。
+**C03 已批准：**持久事实信封包含 `SchemaVersion, SessionId, TurnId?, Sequence, EventId, CorrelationId?, Timestamp, Payload`。每个 Session 的持久 Sequence 单调递增且唯一，只有真正提交的事实才能作为 Durable Event 对外发布。订阅起点包含 `FromBeginning`、**排他**的 `AfterSequence(n)`（只返回 `Sequence > n`）以及从当前已提交高水位原子注册的 `LiveOnly`。保留范围内的历史回放到实时流的衔接不得遗漏已提交事实，断线重连可以至少一次重复投递，客户端按 `(SessionId, Sequence)` 或 `EventId` 去重；游标历史已清理或不可用时必须显式报告，不能悄悄跳过。
+
+多个订阅者是**各自独立的广播消费者**，不能竞争同一个 `ChannelReader`；每个订阅者使用有界缓冲且其取消/故障不影响其他订阅者或阻塞 Session Actor。对于跟不上的 Durable Event 订阅者，必须可见地报告溢出并断开，客户端以**自己已经实际处理并保存**的最后一个持久 Sequence 重新订阅。TextDelta、工具进度等 Ephemeral Notification 不拥有持久 Sequence，不保证重放，允许合并/丢弃但应通知依赖完整增量的消费者发生了缺口。具体 C# 订阅方法及缓冲配置仍待接口实现合同确定；缺乏可靠存储时不得承诺断线后可重放。
 
 可靠执行事实需满足“持久追加成功后可发布/可依赖”；日志不可用时不能继续启动可能产生副作用的新工具。

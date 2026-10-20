@@ -46,20 +46,27 @@ Each decision below is **Proposed** until explicitly approved; use **MUST**, **M
 
 **Approved resolution C02-A:** Persist and deduplicate both Accepted commands and deterministically Rejected commands with valid identities, including `Busy`. The original reply is immutable for a given `(SessionId, CommandId, canonical payload)`. Different payloads conflict. Storage failure or uncertain commit never counts as a confirmed durable receipt. Detailed transaction boundary/canonicalization API belongs to C04 and future C# signature review.
 
-## C03 · Durable Events, subscription cursor, notifications — RECOMMEND APPROVE
+## C03 · Durable Events, subscription cursor, notifications — ACCEPTED (product owner, 2026-10-20)
 
-**Envelope:** `SchemaVersion`, `EventId`, `SessionId`, optional `TurnId`, strictly increasing per-Session durable `Sequence`, timestamp and immutable typed payload. Journal facts are the authoritative persisted output. Streaming text/progress deltas are ephemeral and have no durable Sequence.
+**Approved decision:** Use three subscription starts, broadcast to independent subscribers, preserve gap-free committed durable replay/live transition, and isolate slow subscribers with bounded buffering and explicit overflow/reconnect. Ephemeral deltas are neither durable journal facts nor guaranteed replay data. This decision specifies observable behavior, not final C# signatures.
 
-**Proposed public subscription choices** (conceptual only):
-- `FromBeginning`: replay facts after Sequence 0 then continue live;
-- `AfterSequence(n)`: replay facts with Sequence **greater than** `n`, then continue live;
-- `LiveOnly`: start from the current durable high-water mark, with no earlier facts.
+### Durable facts and cursor
 
-When reliable storage is configured, replay and transition to live delivery MUST be gap-free for committed durable facts. At-least-once re-delivery across reconnection is acceptable; consumers deduplicate by `(SessionId, Sequence)` or `EventId`. Fact events MUST be published only after their transaction commits successfully. Subscribers are broadcast consumers, never competing readers of one work queue.
+- A durable event envelope contains `SchemaVersion`, `EventId`, `SessionId`, optional `TurnId`, monotonic per-Session `Sequence`, timestamp and immutable typed payload. A durable event becomes externally visible as *committed* only after the corresponding persistence transaction has successfully committed.
+- `FromBeginning`: replay the Session's retained durable history after the initial cursor (conceptually Sequence 0), then continue live.
+- `AfterSequence(n)`: replay durable events with `Sequence > n`, then continue live. It is an **exclusive** cursor: event `n` itself is not repeated merely because the requested cursor equals `n`.
+- `LiveOnly`: atomically establish the subscription from the current committed high-water mark, without delivering earlier durable history. Establishment and live subscription registration must not introduce a race that silently skips a newly committed fact.
+- Cursor validity is tied to `SessionId` and the journal's retained range; if requested history is unavailable because of future approved retention/compaction, report an explicit **cursor/history unavailable** error. Never silently claim gap-free replay for missing history.
+- Across a reconnect, delivery may be **at least once**, not exactly once. Subscribers deduplicate durable facts using `(SessionId, Sequence)` or `EventId`; sequence order must be preserved per Session.
 
-A slow or disconnected subscriber MUST NOT block the Session Actor or silently lose durable facts. When bounded subscriber buffering cannot keep up, signal explicit overflow/close; the caller resubscribes from the last durable Sequence it has actually processed and retained, not an unimplemented server acknowledgement mechanism. Ephemeral deltas may be dropped or coalesced, but any loss must be signaled to consumers expecting accurate progress; completion can be reconstructed from durable terminal events. Canceling a subscriber does not cancel the Session or another subscriber.
+### Broadcast and backpressure
 
-**Review question C03-A:** Approve cursor semantics and *fail/reconnect* on durable subscriber overflow, rather than unbounded buffering or blocking? **Recommendation:** yes.
+- Subscribers receive **independent broadcast delivery**, not competing reads from a common `ChannelReader`. One listener canceling, failing, or consuming slowly MUST NOT consume another listener's notifications or block the Session Actor.
+- Each subscriber has a **bounded** buffer. If a subscriber cannot keep pace with **durable facts**, the broker MUST emit an observable overflow/disconnect outcome. The client resumes with `AfterSequence(lastProcessedSequence)`, where `lastProcessedSequence` is **the last durable event it actually processed and retained**, not the highest event published by the server. Do not rely on unimplemented server acknowledgements.
+- `Ephemeral Notification` (text deltas, UI progress, optional summaries) has no journal Sequence and does not automatically replay. It MAY be coalesced, throttled or dropped; a subscriber that depends on a faithful incremental view MUST be told that deltas were lost, so it can refresh from durable facts or another supported snapshot. Ephemeral notifications cannot be reclassified as committed events to hide loss.
+- Resource limits, exact API shape, error DTO, whether overflow is carried as a terminal stream result or a separate signal, and ephemeral refresh behavior remain detailed contract questions. Their implementations must preserve the accepted observable semantics.
+
+**Approved resolution C03-A:** `FromBeginning`, exclusive `AfterSequence(n)`, and `LiveOnly`; committed durable replay-to-live MUST be gap-free within the retained journal, with independent multi-subscriber broadcast and per-subscriber bounded buffering. Overflow of a slow durable subscriber causes **explicit** disconnect and cursor-based recovery, never unbounded growth, actor blockage or silent durable loss. Ephemeral loss is allowed only with appropriate observable loss signaling.
 
 ## C04 · Actor and durable-store coordination — RECOMMEND APPROVE
 
@@ -105,7 +112,7 @@ Reject the alternative of `Detach` as the implicit default because it can contin
 | --- | --- | --- | --- |
 | C01 | Public root & exclusive Session ownership | exclusive control per Runtime; second Open rejects SessionAlreadyOpen; independent event subscribers permitted | **Accepted (2026-10-20)** |
 | C02 | Commands, receipts, persistent idempotence | stable `(SessionId, CommandId)` key, immutable Accepted/deterministic Rejected receipt incl. Busy; conflict on payload; uncertain store outcome never faked | **Accepted (2026-10-20)** |
-| C03 | Durable cursor and multi-subscriber backpressure | exclusive cursor; gap-free replay; overflow signals reconnect | **Proposed** |
+| C03 | Durable cursor and multi-subscriber backpressure | FromBeginning / exclusive AfterSequence(n) / LiveOnly; committed facts gap-free; bounded independent broadcast; explicit overflow/reconnect | **Accepted (2026-10-20)** |
 | C04 | Actor ↔ store commit ordering | Actor sole state writer; async worker; required durable barrier | **Proposed** |
 | C05 | Approval/tool authorization & failure | fixed gates; scope-bound approval; Unknown not retried | **Proposed** |
 | C06 | Session disposal behavior | Cancel + bounded cleanup; no implicit detach | **Proposed** |
@@ -120,13 +127,16 @@ Reject the alternative of `Detach` as the implicit default because it can contin
 | CT-003 | Same CommandId with different payload | DuplicateCommandConflict; original receipt unchanged, no new action |
 | CT-004 | Submit acceptance response lost and caller retries | same CommandId retrieves original durable receipt after restart, exactly one command admission/Turn, without reexecution |
 | CT-005 | Reconnect from AfterSequence(n) during simultaneous publish | no committed durable event gap or reordering |
-| CT-006 | Slow subscriber overflows | explicit cursor and reconnect outcome; other subscriber unaffected |
+| CT-006 | Slow subscriber overflows | bounded durable queue signals disconnect; client resumes from last actually processed Sequence; other subscribers/Actor unaffected |
 | CT-007 | Commit delayed/failed while interrupt arrives | Actor responsive; no unauthorized side effect; coherent state |
 | CT-008 | Approval replay with altered args/scope or after interrupt | Executor not started |
 | CT-009 | Persist intent, tool mutates, process crashes before terminal | Unknown; no automatic repeat |
 | CT-010 | Dispose during running Turn or subprocess | bounded cleanup; no false claim of stopped effects |
 | CT-011 | Unsupported protocol/command version | explicit rejection; fail closed |
 | CT-012 | Fake Store vs SQLite production authorization | Fake Store cannot enable production mutating tool dispatch |
+| CT-015 | Subscription modes and live boundary | FromBeginning / AfterSequence(n) / LiveOnly deliver correct ranges; concurrent commit at transition causes no gap |
+| CT-016 | Unavailable retained event history | out-of-range/compacted cursor fails explicitly, no silent omission |
+| CT-017 | Ephemeral delta coalescing and overflow | loss is signaled; deltas cannot masquerade as durable facts |
 | CT-013 | Deterministically rejected Busy retried across restart | original Busy receipt preserved after state changes; new intent requires new CommandId |
 | CT-014 | Storage commit fails or result uncertain | no fabricated Accepted/rejected receipt; same-ID retry reconciles existing record before new decision, no side-effect dispatch on uncertain intent |
 
@@ -141,4 +151,4 @@ Reject the alternative of `Detach` as the implicit default because it can contin
 
 ## 4. Review workflow
 
-The product owner decides remaining Proposed C03–C07 or requests changes. C01 and C02 were explicitly Accepted on 2026-10-20 and synchronized with the public-contract catalog, runtime protocol and test strategy. When all C01–C07 have been approved, synchronize the remaining documents, revise the M0 consistency report, then conduct a second static consistency audit. M0 can be signed off **only after that review**. M1/T001 implementation still needs an explicit separate owner authorization.
+The product owner decides remaining Proposed C04–C07 or requests changes. C01–C03 were explicitly Accepted on 2026-10-20 and synchronized with the public-contract catalog, runtime protocol and test strategy. When all C01–C07 have been approved, synchronize the remaining documents, revise the M0 consistency report, then conduct a second static consistency audit. M0 can be signed off **only after that review**. M1/T001 implementation still needs an explicit separate owner authorization.

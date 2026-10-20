@@ -57,7 +57,7 @@ M1 T001 is **skeleton-only**: build, project graph and minimal tests on Windows/
 
 M2 permits deterministic Fake Model, Fake Tool and **Fake SessionStore** for test of control flow and policy/approval semantics. Production mutating commands must **not** become enabled on a fake/in-memory store without the accepted ADR-0005 durable pre-execution guarantee. M3 implements and verifies SQLite plus side-effect execution, recovery and safety checks.
 
-Documentation RT-001..RT-039 is a **requirements/test-plan inventory**, not evidence that tests pass.
+Documentation RT-001..RT-042 is a **requirements/test-plan inventory**, not evidence that tests pass.
 
 ## 6. Recommendations and acceptance
 
@@ -69,6 +69,6 @@ Documentation RT-001..RT-039 is a **requirements/test-plan inventory**, not evid
 
 ### Next architecture-only task
 
-A [proposed C01–C07 contract-decision supplement](../specifications/m0-contract-decisions-v0.1.md) has been drafted for owner review. **The M0-B01 blocker remains OPEN**; this proposal does not constitute contract approval. C01 and C02 are Accepted; C03–C07 remain Proposed. The next step is to review and explicitly accept or revise the remaining decisions. Limit decisions to the observable SDK protocol, session concurrency, Tool/Policy authority, and safe-storage ordering; leave provider wire formats, SQLite DDL and TUI rendering to later tasked contracts. Then rerun M0 documentation checks, present remaining product choices, obtain explicit owner sign-off and only then authorize T001.
+A [proposed C01–C07 contract-decision supplement](../specifications/m0-contract-decisions-v0.1.md) has been drafted for owner review. **The M0-B01 blocker remains OPEN**; this proposal does not constitute contract approval. C01–C03 are Accepted; C04–C07 remain Proposed. The next step is to review and explicitly accept or revise the remaining decisions. Limit decisions to the observable SDK protocol, session concurrency, Tool/Policy authority, and safe-storage ordering; leave provider wire formats, SQLite DDL and TUI rendering to later tasked contracts. Then rerun M0 documentation checks, present remaining product choices, obtain explicit owner sign-off and only then authorize T001.
 
 **Reviewer limitation:** No build, unit test, crash recovery test or cross-platform runtime test can be marked Pass because this branch currently contains design documents only.
