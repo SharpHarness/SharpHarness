@@ -134,11 +134,11 @@ Reject the alternative of `Detach` as the implicit default because it can contin
 | CT-010 | Dispose during running Turn or subprocess | bounded cleanup; no false claim of stopped effects |
 | CT-011 | Unsupported protocol/command version | explicit rejection; fail closed |
 | CT-012 | Fake Store vs SQLite production authorization | Fake Store cannot enable production mutating tool dispatch |
+| CT-013 | Deterministically rejected Busy retried across restart | original Busy receipt preserved after state changes; new intent requires new CommandId |
+| CT-014 | Storage commit fails or result uncertain | no fabricated Accepted/rejected receipt; same-ID retry reconciles existing record before new decision, no side-effect dispatch on uncertain intent |
 | CT-015 | Subscription modes and live boundary | FromBeginning / AfterSequence(n) / LiveOnly deliver correct ranges; concurrent commit at transition causes no gap |
 | CT-016 | Unavailable retained event history | out-of-range/compacted cursor fails explicitly, no silent omission |
 | CT-017 | Ephemeral delta coalescing and overflow | loss is signaled; deltas cannot masquerade as durable facts |
-| CT-013 | Deterministically rejected Busy retried across restart | original Busy receipt preserved after state changes; new intent requires new CommandId |
-| CT-014 | Storage commit fails or result uncertain | no fabricated Accepted/rejected receipt; same-ID retry reconciles existing record before new decision, no side-effect dispatch on uncertain intent |
 
 **Review evidence:** deterministic fake components for M2; SQLite, subprocess and crash-injection evidence in M3; no tests have run while documents-only.
 
