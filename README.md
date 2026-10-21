@@ -23,7 +23,8 @@ Start at [docs/README.md](docs/README.md). Architecture proposals, ADRs, public 
 
 - [x] Product direction: General Agent Core + Coding Agent.
 - [x] Architecture style: Thin kernel + composable standard services.
-- [ ] Review and accept architecture v0.1.
+- [x] Complete independent M0-B01 architectural documentation review (PASS).
+- [ ] Obtain explicit product-owner final sign-off to formally close M0 architecture v0.1.
 - [ ] Approve bootstrap implementation task.
 - [ ] Implement, test and accept the first code change.
 

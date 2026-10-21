@@ -11,7 +11,7 @@
 3. **No invented APIs or behavior.** If a contract is missing or contradictory, ask for a design decision; do not silently fill in business semantics.
 4. **Respect dependency boundaries:** Core depends only on Abstractions and base .NET facilities; concrete providers, storage, UI, Coding tools depend inward. Resolve dependencies at composition root.
 5. **No unrelated refactoring, package additions, renaming or changes outside allowed task scope.** Propose an ADR change for architectural deviation.
-6. **Security gates cannot be bypassed:** all tool invocations must pass validation, policy, required approval, then controlled execution. Tool metadata and LLM output are untrusted.
+6. **Security gates cannot be bypassed:** all **runtime-mediated** ToolInvocations must pass registered tool/argument/scope validation, Policy Allow/Deny/Ask, exact required Approval, and a confirmed **durable execution intent before possible side effects**, then controlled Executor. Tool metadata and LLM output are untrusted; Policy is not OS isolation from arbitrary same-process code.
 7. **Use .NET/C# for official runtime components.** Avoid Node.js, Python or Rust runtime dependencies. External process calls to user tooling (git, compilers, shells) are acceptable when controlled and documented.
 8. **Test, don't claim:** provide reproducible `dotnet build` / `dotnet test` evidence when relevant; explicitly list OS matrix and untested cases. Never claim unexecuted tests passed.
 9. **Safe repository behavior:** no destructive Git commands, secret commits, force push, branch deletion, or bypassing review without explicit product-owner approval.

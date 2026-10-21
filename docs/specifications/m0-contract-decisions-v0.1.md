@@ -1,14 +1,14 @@
 # M0-B01: Runtime Public-Contract Decisions v0.1
 
-- **Status:** Proposed; owner review required (NOT Accepted)
+- **Status:** **Accepted (M0 behavioral contract, C01–C07)**; final overall M0 owner sign-off is a separate gate.
 - **Created:** 2026-10-20
 - **Scope:** observable runtime protocol and guarantees required for the M0 architecture sign-off; not production C# source or a frozen NuGet API.
-- **Authority:** ADR-0001..ADR-0006 are Accepted. This document proposes narrower contract decisions beneath them; rejected/modified choices must be reflected here before the M0-B01 blocker can close.
+- **Authority:** ADR-0001..ADR-0006 and C01–C07 have been explicitly Accepted by the product owner. This document governs observable M0 runtime semantics, not yet compile-ready public C# signatures.
 - **Reference:** [M0 review](../review/m0-consistency-review.md), [existing type catalog](contracts-v0.1.md), [runtime protocol](../architecture/runtime-protocol.md), [recovery](../architecture/persistence-and-recovery.md), [security](../architecture/tools-and-security.md).
 
 ## 0. Normative levels and phase boundaries
 
-Each decision below is **Proposed** until explicitly approved; use **MUST**, **MUST NOT** and **SHOULD** to express recommended requirements, not to claim existing behavior. The Accepted ADR principles remain binding regardless of approval of this supplement.
+C01–C07 are **Accepted** owner decisions. **MUST**, **MUST NOT** and **SHOULD** define normative *requirements for future implementations*, not claims that code or tests exist. Accepted ADRs take precedence; public type signatures and phase-specific implementation choices remain separately gated.
 
 - **M1 / T001:** empty multi-project .NET 10 skeleton, test discovery, CI on three OS; no public API, Agent Loop, SQLite schema or Tool Executor implementation required. All contract examples here are **documentation**, not implicit authorization to code.
 - **M2:** design and implement behaviorally approved Core/Abstractions contracts using fake model/tool/store; deterministic tests of concurrency/receipts/streams, not deployment of mutating tool operations using volatile stores.
@@ -150,7 +150,7 @@ Must test distinct ID correlation; altered arguments/tool version/effective scop
 
 **Deferred technical detail:** precise serialized compatibility matrix, Minor handshake/negotiation, journal migration algorithm and SQLite DDL, exact error DTOs/exception mapping, System.Text.Json source-generated polymorphism and public NuGet compatibility policies. Coding Agents may not choose security-sensitive downgrade or migration behavior without dedicated contract approval.
 
-## 1. Decision register for owner review
+## 1. Approved decision register
 
 | ID | Choice | Recommendation | Status |
 | --- | --- | --- | --- |
@@ -210,4 +210,4 @@ Must test distinct ID correlation; altered arguments/tool version/effective scop
 
 ## 4. Review workflow
 
-The product owner has explicitly Accepted C01–C07. Their observable semantic guarantees are now approved as the M0-B01 behavioral contract, while implementation-specific C# signatures, SQL schema and CLI policies remain deferred. The M0-B01 final audit must validate document consistency, security boundaries, test-plan coverage and phase limits before final owner M0 sign-off. M1/T001 implementation still needs a separate explicit owner authorization.
+The product owner has explicitly Accepted C01–C07. Their observable semantic guarantees are now approved as the M0-B01 behavioral contract, while implementation-specific C# signatures, SQL schema and CLI policies remain deferred. The M0-B01 final documentation audit has been completed with **PASS / Resolved**, recorded in the linked M0 review report. The overall M0 baseline is ready for **separate explicit owner sign-off**. M1/T001 implementation still needs a separate explicit owner authorization.

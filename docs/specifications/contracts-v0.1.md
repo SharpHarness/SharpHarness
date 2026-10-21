@@ -1,6 +1,6 @@
 # Public Contract Specification v0.1 (Proposal)
 
-**Status:** Draft; conceptual contracts, not generated source, and **not yet stable public API**. API naming/signatures must be reviewed before M2 implementation.
+**Status:** Draft **compile-ready C# API** catalog, not generated source or stable public API. Its C01–C07 observable behavioral requirements have been approved in [M0-B01](m0-contract-decisions-v0.1.md); exact signatures/DTOs, DI lifetimes and serializer choices require separate review before M2 implementation.
 
 ## 1. Type catalog
 

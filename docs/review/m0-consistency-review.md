@@ -1,74 +1,71 @@
-# M0 Architecture Consistency Review · v0.1
+# M0 Architecture Consistency Review · Final v0.1
 
-- **Status:** Changes Required (M0 exit gate not yet approved)
-- **Review date:** 2026-10-20
-- **Repository / PR:** [SharpHarness/SharpHarness PR #1](https://github.com/SharpHarness/SharpHarness/pull/1)
-- **Scope:** Architecture and agent-governance documents only; no production code, builds or executable runtime tests have been reviewed.
-- **Governance:** Product owner has independently approved ADR-0001..0006. Architecture reviewer checks consistency and recommends status; implementation and task launch still require separate authorization.
+- **Review disposition:** **PASS (architecture documentation / behavioral-contract scope)**
+- **M0-B01:** **RESOLVED**; owner-approved C01–C07 supply the M0-level observable protocol and safety semantics.
+- **Overall M0:** **READY FOR FORMAL PRODUCT-OWNER SIGN-OFF**; this reviewer recommendation is not itself an unrequested owner sign-off, PR merge, or T001 implementation authorization.
+- **Review date:** 2026-10-21
+- **Repository / PR:** [SharpHarness/SharpHarness PR #1](https://github.com/SharpHarness/SharpHarness/pull/1), branch `docs/architecture-v0.1` (OPEN, not merged at review).
+- **Scope limitation:** documentation design audit only. There is no production implementation or executed cross-platform/build/runtime/crash/security test evidence to pass.
 
-## 1. Evidence and audit method
+## 1. Evidence and approach
 
-Read all 19 initial Markdown files from branch `docs/architecture-v0.1` and reviewed the accepted ADRs, architecture overview and subsystem boundaries, public conceptual contracts, test matrix, `AGENTS.md`, and `T001-bootstrap.md`. Confirmed all six ADRs contain Accepted status, with ADR-0001 accepted earlier as product direction; ADR-0002..0006 accepted explicitly in review. Verified the test matrix RT-001..RT-036 is unique and continuous, and all Markdown relative file references resolve after adding this report.
+- Inspected the GitHub review-branch tree of **21 Markdown documents**: root governance/README, documentation index, all six ADRs, five architecture-area documents, both contract specifications, review checklist, this review report, T001 task brief and test strategy.
+- Re-read all six ADRs and seven contract decision statuses. All **ADR-0001..0006 = Accepted** and **C01..C07 = Accepted** by the product owner.
+- Statically validated **27 relative Markdown file references** across the documentation corpus against branch file paths: **0 missing file targets**.
+- Verified unique, increasing test-plan identifiers **RT-001..RT-057 (57 requirements)** and **CT-001..CT-032 (32 contract acceptance scenarios)**. These are *documented requirements*, **not executed or passing unit/integration tests**.
+- Cross-checked observable behaviors, actor/storage ordering, approved tool security gates, compatibility and stage boundaries against the accepted decision records and T001 scope.
 
-This is a **documentation-level consistency review**. It does not constitute actual execution of tests, a penetration test, a Windows/Linux/macOS build, a SQLite crash test or a validation of unimplemented contracts.
+## 2. Consistency matrix
 
-## 2. Findings already consistent with approved ADRs
-
-| Area | Evidence | Reviewer finding |
+| Decision | Observed aligned contracts/architecture | M0 review |
 | --- | --- | --- |
-| Product scope | ADR-0001, overview, module-boundaries | General SDK + Coding Profile and thin Core are compatible |
-| Session concurrency | ADR-0002, runtime-protocol, contracts | One logical Session writer / one active Turn, second StartTurn rejected Busy |
-| Commands and events | ADR-0003, runtime-protocol, contracts | Accepted receipt distinct from Turn completion; durable sequence vs ephemeral deltas, multiple subscribers and deduplication |
-| Typed extension stages | ADR-0004, module-boundaries, model-and-context | Core controls checkpoints, standard services composed with DI, no universal middleware |
-| Local persistence | ADR-0005, persistence-and-recovery, contracts | SQLite via Microsoft.Data.Sqlite, WAL + FULL; append-only Agent Journal, optional coherent snapshot, storage-independent Core |
-| Tool security | ADR-0006, tools-and-security, contracts | Resolve/validate scope → Policy Allow/Deny/Ask → bound Approval → durable SQLite intent → Executor |
-| Trust boundary | ADR-0006, tools-and-security | No complete OS sandbox claimed; runtime-mediated gate does not confine arbitrary same-process .NET code |
-| Source control / tasks | AGENTS.md, T001 | Coding agents do not implement without task approval; reviewer only designs/reviews/tests/accepts |
+| ADR-0001 Thin Kernel | Core delegates interchangeable services to interfaces/DI; no Coding/SQLite dependency in Core | PASS |
+| ADR-0002 Session Actor | One logical Session state writer, one active Turn, Busy rejects a second StartTurn; interrupt/approval remain responsive | PASS |
+| ADR-0003 Command/Event | Typed versioned commands and receipts; durable sequenced facts vs ephemeral deltas; independent broadcast subscriptions | PASS |
+| ADR-0004 Stage Extensions | Typed Context/Model/Tool/Event stages; Core fixes mandatory checkpoints; telemetry distinct from critical Journal | PASS |
+| ADR-0005 Persistence | `ISessionStore` abstraction; first local production store SQLite / Microsoft.Data.Sqlite, WAL + FULL, Journal + optional Snapshots, Unknown side effects | PASS |
+| ADR-0006 Authorization | Runtime-managed resolve/schema/scope → Policy Allow/Deny/Ask → bound Approval → committed intent → controlled Executor; no unsupported OS-sandbox claim | PASS |
+| C01 Session ownership | Exclusive controlling handle per Runtime; concurrent independent read-only subscribers; cross-process ownership deferred | PASS |
+| C02 Command idempotency | Persist Accepted and deterministic Rejected (Busy), immutable same-ID receipt; payload conflict and uncertain commit handled without fake success | PASS |
+| C03 Event replay | FromBeginning / exclusive AfterSequence / LiveOnly, gap-free committed-fact replay/live transition within retention; bounded independent buffers and visible overflow | PASS |
+| C04 Actor/Store | Actor solely decides state, independent storage I/O, acknowledged commit barrier plus live Turn/generation recheck, no late-callback dispatch | PASS |
+| C05 Approval/Tool | Stable InvocationId, scope/argument/version-bound Approval, Succeeded/Failed/Rejected/Cancelled/Unknown distinct, no blind side-effect replay | PASS |
+| C06 Dispose | Cancel + bounded cleanup, exclusive ownership release only when safe, ShutdownIncomplete quarantined, historical Unknown distinguishable from active execution | PASS |
+| C07 Compatibility/Error | Independent ProtocolVersion/SchemaVersion/SDK version; explicit Major/Minor policy, unknown security/event semantics fail closed, structured error and safe retry boundaries | PASS |
 
-No contradiction was found that would require reopening an approved ADR. Explicit and limited trust claims are essential: Policy controls **runtime-mediated** tool calls, not arbitrary OS access from plugins.
+No normative contradiction requiring reopening any ADR or owner-approved C01–C07 was identified in this static review.
 
-## 3. Open blockers for the M0 **document/sign-off gate**
+## 3. M0-B01 resolution and the critical distinction
 
-### M0-B01 · Approved and sufficiently precise interface contract is missing (blocking M0 close)
+**Previous blocker:** the conceptual type catalog `docs/specifications/contracts-v0.1.md` is explicitly *Draft*, so it did not establish enough behavioral constraints for Coding Agents.
 
-**Evidence:** `docs/specifications/contracts-v0.1.md` explicitly says *Draft* and *not yet stable public API*. Important behavioral details remain unresolved, including:
+**Now resolved at the M0 behavioral level:** owner-accepted `docs/specifications/m0-contract-decisions-v0.1.md` states observable Session lifetime, Command receipt and duplicate semantics, durable Event cursors/backpressure, Actor/Store commit synchronization, precise tool/approval authority, shutdown/quarantine and version/error policies, with CT acceptance cases.
 
-- Final lifecycle, command/receipt/error model, CommandId dedup/restart/payload conflict, subscription cursor, slow-client semantics and Dispose cancellation behavior.
-- Single-writer Actor ↔ storage executor handoff, durable facts ordering, failure/acknowledgement semantics and time-of-commit barriers.
-- Tool invocation ID, approval binding, resolved-scope canonicalization, operation classification, timeout/failure/Unknown semantics.
-- Public type ownership and DI registration/lifetimes for Abstractions vs standard services; no premature freeze of unnecessary NuGet surface.
+**Still Draft, by design:** concrete compile-ready `IAgentRuntime`/`IAgentSession` signatures, exact DTOs/enums/serialization API, DI lifetimes, SQLite table schemas/migrations/locking, CLI default grants and native execution/sandbox details are **not approved implementation specifications**. These are required before corresponding M2/M3 tasks, but are **not** M0 documentation blockers and must not be invented by a Coding Agent or implemented in T001.
 
-**Action:** Architecture reviewer prepares a versioned *contract decisions* supplement identifying what is normative for M1/M2 and what is explicitly deferred to M3, with testable acceptance cases. Product owner approves that scoped specification. In particular, no Coding Agent invents contract behavior from a conceptual type catalog.
+## 4. Remaining risks, with explicit phase gates (nonblocking for M0)
 
-**Important:** T001 scaffold explicitly prohibits implementation of Agent Loop, tool execution, SQLite schemas and broad public APIs, so this blocker **does not indicate T001 design is incorrect**. It blocks calling the whole M0 documentation phase completed under the current M0 exit definition.
+| Item | Owner/implementation gate |
+| --- | --- |
+| T001 .NET 10 skeleton | **BLOCKED** until separate product-owner approval of T001 and implementation handoff. T001 may create only solution/projects/CI/minimal tests; no Agent Loop, public runtime, SQLite code or mutating tools. |
+| Compile-ready public C# APIs and DTOs | Design review before relevant **M2** public contract implementation and NuGet publication. |
+| SQLite schema, atomic transition API, locking, backup, migrations, crash tests and native packaging | Design + implementation acceptance during **M3**; tests not yet executed. |
+| CLI permission defaults, filesystem TOCTOU/path scope, Shell/process tree, trust, task grants | Explicit policy/security contract before **M3** tools ship. |
+| OS sandbox / hostile in-process plugin confinement | Not v0.1 capability; never advertise Policy or a working directory as isolation. |
+| Provider details, source-generated serializers / Native AOT, RPC/distributed ownership | Later scoped tasks; do not silently assert compatibility. |
+| Repository open-source License | Product owner selects and adds a license before distribution/third-party reuse, not a requirement for this architecture-only static audit. |
 
-## 4. Items required later, but **not blockers to a bare .NET scaffold**
+## 5. Tests vs evidence
 
-- **M1 task authorization:** `T001-bootstrap.md` is marked BLOCKED. Even after M0 approval it must be explicitly approved by the product owner before any Coding Agent implementation starts.
-- **CLI default policy and permission matrix:** accepted ADR-0006 specifies **mechanism**, not default file/Shell/network grants. Must be decided before enabling production Coding tools (M3). Never silently ship permissive defaults.
-- **SQLite detailed design:** transaction/DDL/locking/migrations/backup/retention/recovery and explicit native asset matrix to be approved before the production storage task (M3).
-- **Native sandbox:** separate workstream. Runtime must disclose that shell and in-process plugins can use user/process privileges; never claim sandbox coverage without evidence.
-- **License:** repository currently has no chosen license. Product owner must select one before distributing or soliciting external contributions; public GitHub visibility does not imply an open-source grant.
-- **Public versioning and provider contract detail:** complete before implementation/public release of corresponding API and model adapter tasks.
+- **Passed now:** owner decision-status audit, document link validation, consistency review of approved behavioral contracts, test ID continuity, stage/task boundary inspection.
+- **NOT VERIFIED:** `dotnet restore/build/test`, Windows/Linux/macOS CI, SQLite WAL/FULL runtime, crash/Unknown behavior, actual process-tree cleanup, sandbox guarantees, binary public API compatibility, Native AOT.
+- Test cases `RT-001..RT-057` and `CT-001..CT-032` are **acceptance plans** for later implementation stages. A passing static document audit is not evidence that any listed behavior has been implemented.
+- T001 remains marked BLOCKED in `docs/tasks/T001-bootstrap.md` and `AGENTS.md` still forbids development without approved tasks.
 
-## 5. Correct test-stage boundary
+## 6. Final reviewer determination
 
-M1 T001 is **skeleton-only**: build, project graph and minimal tests on Windows/Linux/macOS. It MUST NOT pretend SQLite or Tool/Policy runtime is implemented.
+**M0-B01: PASS / RESOLVED.**
 
-M2 permits deterministic Fake Model, Fake Tool and **Fake SessionStore** for test of control flow and policy/approval semantics. Production mutating commands must **not** become enabled on a fake/in-memory store without the accepted ADR-0005 durable pre-execution guarantee. M3 implements and verifies SQLite plus side-effect execution, recovery and safety checks.
+**M0 Architecture v0.1: PASS as a design/documentation baseline; may be formally closed once the product owner explicitly signs off the completed M0 review.** No remaining M0-level normative contradictions or incomplete owner decisions were found. This does **not** freeze unreviewed C# API signatures or imply that tests and implementation are passing.
 
-Documentation RT-001..RT-057 is a **requirements/test-plan inventory**, not evidence that tests pass.
-
-## 6. Recommendations and acceptance
-
-- **ADR decision consistency:** Pass at the conceptual architecture level; six ADRs accepted, no contradiction requiring ADR rollback found.
-- **Markdown links, ADR state, test ID uniqueness:** Pass by structured static review of the committed documents; report link is satisfied by this document.
-- **Implementation and runtime behavior:** Not Verified (no code exists in reviewed scope).
-- **M0 overall:** **Changes Required**, pending an approved scoped contract supplement (M0-B01) and final owner sign-off. Do not merge PR #1 as a fully accepted M0 baseline solely because six ADRs are Accepted.
-- **T001 readiness:** Scope appears appropriately limited; still BLOCKED until task-specific owner approval, and separation from M2/M3 confirmed.
-
-### Next architecture-only task
-
-A [proposed C01–C07 contract-decision supplement](../specifications/m0-contract-decisions-v0.1.md) has been drafted for owner review. **The M0-B01 blocker remains OPEN**; this proposal does not constitute contract approval. C01–C07 are now Accepted; the next step is the final independent M0-B01 documentation consistency audit and explicit reviewer disposition, followed by owner M0 sign-off. This interim paragraph must be superseded by the audit results. Limit decisions to the observable SDK protocol, session concurrency, Tool/Policy authority, and safe-storage ordering; leave provider wire formats, SQLite DDL and TUI rendering to later tasked contracts. Then rerun M0 documentation checks, present remaining product choices, obtain explicit owner sign-off and only then authorize T001.
-
-**Reviewer limitation:** No build, unit test, crash recovery test or cross-platform runtime test can be marked Pass because this branch currently contains design documents only.
+**Do not auto-merge PR #1, do not mark T001 approved, and do not start any coding.** After owner M0 sign-off, separately review/approve T001 implementation scope and CI/test acceptance, then authorize a Coding Agent task. PR merge remains a distinct explicitly approved action.

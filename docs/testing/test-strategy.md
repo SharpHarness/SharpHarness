@@ -1,6 +1,6 @@
 # Test Strategy and Acceptance Criteria v0.1
 
-**Status:** Draft. Architecture/review agent designs independent acceptance; Coding Agent implements tests and runtime. Reviewer executes tests when an executable environment is available; otherwise reports **Not Verified**, not Pass.
+**Status:** M0 acceptance **test-plan inventory reviewed**, NOT executed. Architecture/review agent designs independent acceptance; Coding Agent implements tests and runtime. Reviewer executes tests when an executable environment is available; otherwise reports **Not Verified**, not Pass.
 
 ## 1. Quality gates
 

@@ -1,8 +1,8 @@
 # SharpHarness documentation index
 
-**Architecture Specification v0.1 | 2026-10-19 | Status: DRAFT FOR OWNER REVIEW**
+**Architecture Specification v0.1 | 2026-10-21 | M0 documentation review: PASS; product-owner M0 sign-off pending**
 
-本目录目前是**待确认的设计基线**，并非稳定 API 或代码实现。产品负责人已确认“通用 Core + Coding Agent”、“精简内核 + 标准运行服务”、ADR-0002 单 Session Actor 并发模型，以及 ADR-0003 Command/Event 协议（持久事实、实时通知、多订阅者、命令去重、事件重放），以及 ADR-0004 强类型分阶段扩展管线，以及 ADR-0005 以 SQLite 承载 Agent Journal + Optional Snapshots，以及 ADR-0006 统一工具授权、安全检查点与明确的无沙箱限制；所有六项 ADR 已获产品负责人批准。除已被明确批准的设计文档外，Coding Agent 不得直接开始实现。
+本目录的六项 ADR 与 C01–C07 行为契约已获批准，M0-B01 文档一致性复核通过，**可提交产品负责人正式签署 M0**。这不是已实现的 Runtime，也不代表具体 C# 公共 API 已冻结。产品负责人已确认“通用 Core + Coding Agent”、“精简内核 + 标准运行服务”、ADR-0002 单 Session Actor 并发模型，以及 ADR-0003 Command/Event 协议（持久事实、实时通知、多订阅者、命令去重、事件重放），以及 ADR-0004 强类型分阶段扩展管线，以及 ADR-0005 以 SQLite 承载 Agent Journal + Optional Snapshots，以及 ADR-0006 统一工具授权、安全检查点与明确的无沙箱限制；所有六项 ADR 已获产品负责人批准。除已被明确批准的设计文档外，Coding Agent 不得直接开始实现。
 
 ## 阅读顺序
 
@@ -12,7 +12,7 @@
 4. [模型与上下文](architecture/model-and-context.md)：Provider 语义、上下文构造。
 5. [工具与安全](architecture/tools-and-security.md)：验证、审批、执行。
 6. [持久化与恢复](architecture/persistence-and-recovery.md)：事件日志、副作用。
-7. [M0-B01 契约评审](specifications/m0-contract-decisions-v0.1.md)：C01–C07 均已批准；正在进行 M0 完整一致性总验收；[现有契约类型目录](specifications/contracts-v0.1.md) 仍为 Draft。
+7. [M0-B01 契约评审](specifications/m0-contract-decisions-v0.1.md)：C01–C07 已批准；M0-B01 总验收结论为 PASS，等待产品负责人对整个 M0 最终签署；[现有契约类型目录](specifications/contracts-v0.1.md) 仍为 Draft。
 8. [测试策略](testing/test-strategy.md)、[Review 清单](review/review-checklist.md)。
 9. [实施任务 T001](tasks/T001-bootstrap.md)：**待批准**，用于交给其他 Coding Agent。
 
@@ -27,9 +27,9 @@
 
 ## 待产品负责人批准的问题
 
-- M0-B01 已形成 [C01–C07 契约决策建议](specifications/m0-contract-decisions-v0.1.md)，其中 **C01–C07 Accepted**，等待 M0 总验收结论；[M0 Architecture Review](review/m0-consistency-review.md) 保持 Changes Required，直至签署契约及完成复审。
+- M0-B01 已形成 [C01–C07 契约决策建议](specifications/m0-contract-decisions-v0.1.md)，其中 **C01–C07 Accepted**；[M0 Final Review](review/m0-consistency-review.md) 为 **PASS / Ready for owner sign-off**；[M0 Architecture Review](review/m0-consistency-review.md) 保持 Changes Required，直至签署契约及完成复审。
 - CLI 首版是否默认开启权限审批及本地持久化？建议是。
 - 第一次开发任务是否只允许工程骨架+测试基础设施？建议是。
 - 开源许可证尚未确定；公开仓库不等于已授权他人使用/再分发。
 
-通过 Review 后：更新各 ADR 状态，并由产品负责人批准首个任务。文档修订使用 PR 保留审查历史。
+六项 ADR、七项行为契约及 M0 文档复核均已通过；产品负责人仍须独立正式签署整个 M0，且 T001 必须另行批准才能交给 Coding Agent。PR #1 未自动合并，文档修订保留审查历史。

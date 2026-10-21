@@ -16,7 +16,7 @@ Separate output into **Durable facts** (e.g. `TurnStarted`, `ToolInvocationPrepa
 
 Provide **broadcast subscriptions** with independent subscriber delivery, not multiple consumers competing for one queue. Each subscriber has its own cancellation and backpressure behavior; a slow observer must not consume another observer's messages. `SubmitAsync` cancellation only cancels submission/acceptance waiting, and does **not** implicitly interrupt an accepted Turn; use `InterruptTurn` to cancel execution. An explicit acknowledgement that the command was accepted is distinct from final execution completion.
 
-**Detailed contracts deferred:** exact DTO signatures, CommandId deduplication retention/restart scope and payload-conflict response, replay cursor format, notification buffering and backpressure settings, and durable write/acknowledgement ordering are to be specified and tested before M2 implementation. These details must not be invented by coding agents.
+**Contract decisions approved:** C02 specifies CommandId deduplication, retained Accepted/deterministic Rejected receipts, payload conflicts and crash-safe retry boundary; C03 specifies durable cursors, replay/broadcast/backpressure; C04 specifies durable write acknowledgement and the Actor's commit barrier; C07 specifies version/error behavior. **Remaining implementation contracts:** exact public DTO signatures, fingerprint/serialization algorithm, buffer size/configuration, SQLite DDL/locking and detailed service lifetimes require separate review before their M2/M3 implementation; Coding Agents must not invent them.
 
 ## Consequences / tests
 
