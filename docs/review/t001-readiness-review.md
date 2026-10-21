@@ -45,7 +45,7 @@ Proposed minimal target: `TargetFramework=net10.0` on all platform-neutral proje
 
 **T001-D01 · Final branch/base strategy after PR #1 merge (approved 2026-10-21)**
 
-The product owner separately authorized [merging architecture PR #1](https://github.com/SharpHarness/SharpHarness/pull/1), which is now **Merged** into `main` at `7534fb60536b3b0e07e0b9ffeae06c68a63843b9`. The prior recommendation to build atop `docs/architecture-v0.1` has been superseded. Use the existing `feat/t001-dotnet10-bootstrap` implementation branch, which has been fast-forwarded to the merged `main` without force or lost commits. Coding Agent works only there and opens a **separate T001 PR against `main`**. Never commit implementation straight to `main` or merge the new implementation PR without its own T001-A01..A08 review and owner authorization. The approved M0 specification is now available directly on `main`.
+The product owner separately authorized [merging architecture PR #1](https://github.com/SharpHarness/SharpHarness/pull/1), which is now **Merged** into `main` at `7534fb60536b3b0e07e0b9ffeae06c68a63843b9`. The earlier recommendation to build atop a not-yet-merged architecture branch has been superseded. Use the existing `feat/t001-dotnet10-bootstrap` implementation branch, which has been fast-forwarded to the merged `main` without force or lost commits. Coding Agent works only there and opens a **separate T001 PR against `main`**. Never commit implementation straight to `main` or merge the new implementation PR without its own T001-A01..A08 review and owner authorization. The approved M0 specification is now available directly on `main`.
 
 **T001-D02 · .NET 10 SDK/test-framework selection (delegated bounded implementation choice)**
 
