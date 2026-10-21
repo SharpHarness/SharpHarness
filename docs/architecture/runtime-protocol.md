@@ -1,6 +1,6 @@
 # Session, Turn and Execution Protocol v0.1
 
-**Status:** Draft (protocol details) | ADR-0002 and ADR-0003 Accepted; public API shapes remain proposals.
+**Status:** Draft (implementation/API signatures) | ADR-0002/0003 and C01–C07 behavioral decisions Accepted; public C# signatures remain proposals.
 
 ## 1. 生命周期定义
 
@@ -50,6 +50,13 @@ TurnExecutor 在独立异步执行任务中运行，其步骤结果发回 Actor 
 - 关闭结果的**候选名称**为 `Closed`、`ClosedWithUnknownEffects` 和 `ShutdownIncomplete`，其重要区别是旧操作是否仍有可能活跃，而不是仅以历史副作用是否 Unknown 来判断。
 - `ShutdownIncomplete` 表示控制权隔离/待协调恢复，防止同一 Runtime 创建第二 Actor；宿主崩溃后需要依据持久记录及可得的 OS 证据重新协调，不能宣称仅靠内存状态实现跨进程互斥。
 - 默认 Dispose 不是 Detach，网络断线及单个订阅者 Dispose 不等于 Session Dispose。具体 API 返回值、进程树控制与清理时限留待后续任务合同。
+
+## 4.2 C07 版本化与结构化错误（已批准）
+
+- `ProtocolVersion` 管理 Command/Receipt/Notification 交互，定义 Major/Minor 兼容规则；`SchemaVersion` 独立管理 Journal/Event/Snapshot 持久数据；SDK/NuGet 版本独立管理公共 C# API。不存在一个版本号自动代表三者的兼容性。
+- 不支持的 Major、未知 Command/持久事件语义、未知安全敏感字段必须 Fail Closed，不能降级为可忽略默认项。普通可选字段仅在明确审查为可忽略时允许向前兼容。
+- `CommandReceipt`、Turn Completion、ToolResult、Runtime/Storage Error 采用不同结果层级，错误码机器可读且提供合适的恢复建议。原 `Accepted` 回执不会因为后来 Turn 失败而变化；提交状态不确定时不能返回伪造的确认结果。
+- 传输层对同 CommandId 的安全重投不等于可以重放外部工具副作用。
 
 ## 5. 并发与确定性
 

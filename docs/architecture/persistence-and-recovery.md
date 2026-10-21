@@ -14,7 +14,7 @@ Session 持久化不仅保存聊天记录，还需要保存能重建执行状态
 - 数据库损坏、重复序号、快照与 Journal 不一致须显式报告；不能静默重放或补造缺失事实。Snapshot 必须附带与已提交 Journal 匹配的 Sequence 和 SchemaVersion。
 - **强制持久化栅栏：**在可产生外部副作用的工具实际启动前，必须提交并确认 Invocation 意图/开始事实。写入失败或提交结果不确定时不允许触发新的副作用。数据库事务不能覆盖真实文件、Git 或 Shell 操作。
 - 日志持久化失败不得假装任务成功；普通遥测失败可以隔离处理。
-- SchemaVersion 随每条记录保存；未知版本采用 fail-closed 或显式迁移，不得随意反序列化成默认值。
+- **C07 已批准：**Journal 事件和 Snapshot 分别带有明确的持久 `SchemaVersion` 及类型判别符，与命令/通知的 `ProtocolVersion` 和 SDK/NuGet 版本独立。未知或不兼容的 Durable Event 类型/语义必须停止相关恢复并报告兼容/迁移错误，不能默默丢弃；不兼容 Snapshot 只有在完整兼容的已保留 Journal 足以重建时才能安全弃用并重建，不得猜测或伪造缺失事实。
 
 ## 2.1 SQLite 本地适配器配置（已批准方向）
 

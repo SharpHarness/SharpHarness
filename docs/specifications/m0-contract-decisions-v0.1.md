@@ -128,13 +128,27 @@ Must test distinct ID correlation; altered arguments/tool version/effective scop
 
 **Accepted test obligations:** verify no new dispatch after Closing, bounded cleanup on hanging processes, accurate Closed vs ClosedWithUnknownEffects vs ShutdownIncomplete reporting, no premature Session control release/reopen while uncontained execution remains possible, safe reopening after verified release with historical Unknown preserved, C04 late commit after disposal not dispatching, and observer cancellation not affecting session control.
 
-## C07 · Contract versioning and error behavior — RECOMMEND APPROVE
+## C07 · Contract versioning and error behavior — ACCEPTED (product owner, 2026-10-21)
 
-- Commands and durable event payloads have explicit protocol/schema versions and stable discriminators. Unknown command types and security-sensitive fields MUST fail closed, not be silently interpreted as innocuous defaults.
-- Protocol invalidity, policy rejection, Busy, store unavailable and ownership conflict are reported as structured outcomes. Cancellation of the submit wait is NOT represented as a confirmed runtime rejection; caller may have lost the acknowledgement.
-- Unexpected internal implementation exceptions may surface as structured runtime failures, but never disappear; telemetry failure alone must not override successful Agent execution, while durable storage failure must stop operations needing its guarantees.
-- Time is UTC `DateTimeOffset`, opaque IDs must be stable, serialized records immutable/versioned. Public C# signatures, binary compatibility, source generators and package release versions must be reviewed before publishing NuGet packages.
-- No volatile in-memory store may be advertised as providing production durability for side-effect execution.
+**Approved resolution C07-A:** separate (a) versioned Runtime command/receipt/notification **ProtocolVersion**, (b) persisted Journal/Snapshot **SchemaVersion**, and (c) public SDK/NuGet **package version**. Establish explicit protocol compatibility policy; an unsupported Major, unknown Command or durable Event meaning, or an unrecognized security-sensitive field **MUST fail closed**. Use structured, stable errors and recovery guidance across CommandReceipt, Turn Completion, ToolResult and Runtime/Storage failures. "May retry transport" never means "may execute external side effects again"; tool `Unknown` MUST NOT be blindly replayed.
+
+### Version domains and compatibility
+
+1. **ProtocolVersion:** version commands, receipts and notifications with a documented Major/Minor compatibility contract. Unsupported Major is rejected as incompatible rather than guessed. Minor additions are compatible **only when explicitly defined** as optional, understood by both relevant parties or explicitly safe to ignore; no automatic assumption that every unknown field is benign. Do not silently alter mandatory invariants.
+2. **SchemaVersion:** each durable Journal Event and Snapshot has an independent persisted schema version and a stable typed discriminator. Reading unsupported/unrecognized event semantics MUST stop affected recovery with an explicit compatibility/migration error. Data MUST NOT be dropped, guessed or rewritten as a default event. A snapshot with unsupported version can only be discarded/rebuilt when a supported, complete retained Journal is sufficient to reconstruct verified state. Schema migration must preserve committed facts, ordered sequences, approval/command deduplication semantics and Unknown side-effect states.
+3. **SDK/NuGet version:** package/API binary/source compatibility is managed separately and does not automatically force protocol or journal format migration. API shape, SemVer policy, .NET 10 packaging and serialization/AOT behavior require later API publication review.
+4. **Untrusted/unknown semantics:** unknown Command type, unsupported security/policy/scope/approval field or unrecognized safety-impacting event MUST fail closed. Only known or explicitly designated ignorable, nonsecurity extension data may be ignored or safely preserved by an approved forward-compatibility policy.
+
+### Error classification and safe recovery
+
+- Distinguish **CommandReceipt** (durable command admission or deterministic rejection), **Turn Completion** (overall execution outcome), **ToolResult** (a single tool's execution/effect state, including `Unknown`), and **Runtime/Storage Error** (transport/protocol/subscription/ownership/storage failures). A later Turn failure MUST NOT mutate an already persisted `Accepted` receipt.
+- Favor **structured stable error codes** with machine-readable classification, correlation, optional sanitized diagnostics and explicit recovery guidance; client logic MUST NOT parse free-form Exception.Message or localized UI strings for meaning. Public Result-versus-Exception mechanics and exact enum codes remain for detailed C# API review.
+- Errors about cancellation of `SubmitAsync` waiting or lost response do **not** establish whether command admission occurred. Reconcile by retry/query with the **same** CommandId under C02. `Busy` and `DuplicateCommandConflict` have the immutable receipt semantics of C02.
+- For SQLite **failed/uncertain commit**, never fabricate accepted/rejected persistence or dispatch a side effect; reconcile facts first (C04). For `ToolResult.Unknown`, require tool-specific verification or explicit intervention; never automatically perform the possible effect again (C05/ADR-0005).
+- A retryability indicator, if exposed, MUST distinguish a safe **command transport re-submission under the same CommandId** from approval to **re-execute external effects**; the latter is not inferred from retryable network or storage failures.
+- Use UTC `DateTimeOffset` for machine timestamps, stable opaque IDs and immutable/versioned serialized records. Telemetry failure is isolatable when noncritical, while critical Journal failure must remain observable and stop dependent side-effect operations. No production-durability claims for a volatile Fake Store.
+
+**Deferred technical detail:** precise serialized compatibility matrix, Minor handshake/negotiation, journal migration algorithm and SQLite DDL, exact error DTOs/exception mapping, System.Text.Json source-generated polymorphism and public NuGet compatibility policies. Coding Agents may not choose security-sensitive downgrade or migration behavior without dedicated contract approval.
 
 ## 1. Decision register for owner review
 
@@ -146,7 +160,7 @@ Must test distinct ID correlation; altered arguments/tool version/effective scop
 | C04 | Actor ↔ store commit ordering | Actor sole state writer; independently scheduled storage I/O; correlated commit result, revalidate live Turn before dispatch, fail-closed late callbacks | **Accepted (2026-10-20)** |
 | C05 | Approval/tool authorization & failure | stable InvocationId, exact bounded Approval, Actor/C04 revalidation and distinct Succeeded/Failed/Rejected/Cancelled/Unknown results | **Accepted (2026-10-20)** |
 | C06 | Session disposal behavior | Cancel + bounded cleanup; verified safe ownership release, incomplete-shutdown quarantine, historical Unknown retained | **Accepted (2026-10-21)** |
-| C07 | Versions & errors | structured versioned contracts; fail closed | **Proposed** |
+| C07 | Versions & errors | independent Protocol/Schema/SDK versions; explicit Major/Minor, structured errors; unknown security/event semantics fail closed; no blind effect retries | **Accepted (2026-10-21)** |
 
 ## 2. Acceptance matrix for contract decisions (design requirements, not run tests)
 
@@ -179,6 +193,11 @@ Must test distinct ID correlation; altered arguments/tool version/effective scop
 | CT-025 | ShutdownIncomplete / quarantine | unverified running process means visible incomplete shutdown, Session cannot reopen as a second uncontrolled Actor |
 | CT-026 | Historical Unknown with confirmed stop | ownership can release with historical Unknown effects preserved; no false active-process claim |
 | CT-027 | Dispose subscriber independent of Session | one subscriber disposal does not stop Session/Turn or other subscribers |
+| CT-028 | Unsupported Major and unknown Command | structured incompatibility/invalid command, no execution or guessing |
+| CT-029 | Unsupported durable Event Schema/meaning | explicit failure or approved migration; never skip mandatory persisted facts |
+| CT-030 | Unsupported Snapshot with complete vs incomplete Journal | rebuild only from verified complete compatible Journal; otherwise fail closed |
+| CT-031 | Unknown approval/scope security field | fail closed; cannot widen privileges on version fallback |
+| CT-032 | Structured error and retry semantics | distinct receipt/Turn/tool/storage errors; transport same-CommandId retry does not authorize replay of uncertain external effects |
 
 **Review evidence:** deterministic fake components for M2; SQLite, subprocess and crash-injection evidence in M3; no tests have run while documents-only.
 
@@ -191,4 +210,4 @@ Must test distinct ID correlation; altered arguments/tool version/effective scop
 
 ## 4. Review workflow
 
-The product owner decides remaining Proposed C07 or requests changes. C01–C06 have been explicitly Accepted and synchronized with the public-contract catalog, Session/Runtime architecture, persistence/recovery and test strategy. When all C01–C07 have been approved, synchronize the remaining documents, revise the M0 consistency report, then conduct a second static consistency audit. M0 can be signed off **only after that review**. M1/T001 implementation still needs an explicit separate owner authorization.
+The product owner has explicitly Accepted C01–C07. Their observable semantic guarantees are now approved as the M0-B01 behavioral contract, while implementation-specific C# signatures, SQL schema and CLI policies remain deferred. The M0-B01 final audit must validate document consistency, security boundaries, test-plan coverage and phase limits before final owner M0 sign-off. M1/T001 implementation still needs a separate explicit owner authorization.
