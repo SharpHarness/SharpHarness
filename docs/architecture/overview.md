@@ -1,6 +1,6 @@
 # SharpHarness Architecture Overview v0.1
 
-**Status:** M0 behavioral architecture review PASS (final owner M0 sign-off pending); detailed C# API/implementation drafts remain open. | **Owner decisions accepted:** General Agent Core + Coding Agent; Thin Kernel + Standard Runtime Services; ADR-0002 Session Actor; ADR-0003 Command/Event; ADR-0004 typed stage-specific extensibility; ADR-0005 SQLite-backed Journal + Optional Snapshots; ADR-0006 mandatory Tool Policy/Approval and explicit no-sandbox boundary.
+**Status:** M0 architecture v0.1 formally Accepted / Closed (product owner, 2026-10-21), included in merged PR #1; detailed C# API/implementation contracts remain unapproved. | **Owner decisions accepted:** General Agent Core + Coding Agent; Thin Kernel + Standard Runtime Services; ADR-0002 Session Actor; ADR-0003 Command/Event; ADR-0004 typed stage-specific extensibility; ADR-0005 SQLite-backed Journal + Optional Snapshots; ADR-0006 mandatory Tool Policy/Approval and explicit no-sandbox boundary.
 
 ## 1. 产品目标
 

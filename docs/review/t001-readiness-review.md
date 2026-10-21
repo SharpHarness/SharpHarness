@@ -43,9 +43,9 @@ Proposed minimal target: `TargetFramework=net10.0` on all platform-neutral proje
 
 ## 4. Three implementation clarifications included in approved T001 handoff
 
-**T001-D01 · Branch/base strategy while architecture PR #1 remains OPEN (approved handoff choice)**
+**T001-D01 · Final branch/base strategy after PR #1 merge (approved 2026-10-21)**
 
-Do not code directly on `main` or in this architecture documentation PR. **Recommendation:** after separate T001 approval, create a new implementation branch **from** `docs/architecture-v0.1` and open a separate T001 PR targeting that branch until the owner separately authorizes merging the architecture baseline. This avoids building off a `main` that does not yet contain approved architecture files. Coding Agent must record the base commit and not merge PR #1. An alternative owner-approved branch arrangement is acceptable if the signed-off architecture remains available.
+The product owner separately authorized [merging architecture PR #1](https://github.com/SharpHarness/SharpHarness/pull/1), which is now **Merged** into `main` at `7534fb60536b3b0e07e0b9ffeae06c68a63843b9`. The prior recommendation to build atop `docs/architecture-v0.1` has been superseded. Use the existing `feat/t001-dotnet10-bootstrap` implementation branch, which has been fast-forwarded to the merged `main` without force or lost commits. Coding Agent works only there and opens a **separate T001 PR against `main`**. Never commit implementation straight to `main` or merge the new implementation PR without its own T001-A01..A08 review and owner authorization. The approved M0 specification is now available directly on `main`.
 
 **T001-D02 · .NET 10 SDK/test-framework selection (delegated bounded implementation choice)**
 
@@ -84,6 +84,6 @@ Review the diff against the T001 allowlist, project dependency graph and full CI
 
 **Authorized scope for Coding Agent handoff:**
 
-> Approve T001 to create only the .NET 10 solution skeleton, seven minimal project files, deterministic test infrastructure and three-OS GitHub Actions CI, using the signed-off M0 architecture branch as base and a separate T001 PR. Permit an explicitly documented SDK/test-framework selection and minimal build README update. Forbid implementation of public Agent runtime APIs, SQLite and Coding tools. Require T001-A01..A08 acceptance evidence and independent review; do not merge PR #1 or any implementation PR without separate approval.
+> Approve T001 to create only the .NET 10 solution skeleton, seven minimal project files, deterministic test infrastructure and three-OS GitHub Actions CI, using the merged M0 baseline on `main` as the base for `feat/t001-dotnet10-bootstrap`, with a separate T001 PR targeting `main`. Permit an explicitly documented SDK/test-framework selection and minimal build README update. Forbid implementation of public Agent runtime APIs, SQLite and Coding tools. Require T001-A01..A08 acceptance evidence and independent review; PR #1 was separately approved and merged; do not merge any implementation PR without separate review and authorization.
 
-**Current state:** T001 is **APPROVED FOR IMPLEMENTATION** only. No code/test/CI is claimed to have been completed or accepted by the task approval; separate PR, code review and T001-A01..A08 verification remain required. PR #1 remains open/unmerged.
+**Current state:** T001 is **APPROVED FOR IMPLEMENTATION** only. No code/test/CI is claimed to have been completed or accepted by the task approval; separate PR, code review and T001-A01..A08 verification remain required. PR #1 has been merged into `main`; T001 implementation itself remains unmerged and unverified.

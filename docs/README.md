@@ -27,9 +27,9 @@
 
 ## 待产品负责人批准的问题
 
-- **M0 已正式 CLOSED / Accepted（2026-10-21）**：[六项 ADR](adr/0001-thin-kernel.md)、[C01–C07](specifications/m0-contract-decisions-v0.1.md) 和 [M0 Final Review](review/m0-consistency-review.md) 全部签署完成；此决策**不等于批准 T001 或合并 PR #1**。
+- **M0 已正式 CLOSED / Accepted（2026-10-21）**：[六项 ADR](adr/0001-thin-kernel.md)、[C01–C07](specifications/m0-contract-decisions-v0.1.md) 和 [M0 Final Review](review/m0-consistency-review.md) 全部签署完成；随后 T001 已单独获准实施，架构 PR #1 亦经另行批准后合并入 `main`。
 - CLI 首版是否默认开启权限审批及本地持久化？建议是。
 - T001 已获得单独实施授权（2026-10-21）；具体交付、三个 OS 的 CI 和 T001-A01～A08 必须在独立实施 PR 中通过审查，尚未运行或验收。
 - 开源许可证尚未确定；公开仓库不等于已授权他人使用/再分发。
 
-六项 ADR、七项行为契约及 M0 文档复核均已正式通过，M0 已关闭。**T001 仅工程骨架已批准实施，尚未完成或通过验收；PR #1 继续 Open，不自动合并到 main。M2/M3 未授权。**
+六项 ADR、七项行为契约及 M0 文档复核均已正式通过，M0 已关闭。**T001 仅工程骨架已批准实施，尚未完成或通过验收；架构 PR #1 已合并到 `main`，T001 将从独立 `feat/t001-dotnet10-bootstrap` 分支向 `main` 创建实施 PR，必须单独验收和获准合并。M2/M3 未授权。**

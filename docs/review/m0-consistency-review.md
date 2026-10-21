@@ -2,9 +2,9 @@
 
 - **Review disposition:** **PASS (architecture documentation / behavioral-contract scope)**
 - **M0-B01:** **RESOLVED**; owner-approved C01–C07 supply the M0-level observable protocol and safety semantics.
-- **Overall M0:** **CLOSED / FORMALLY ACCEPTED BY PRODUCT OWNER (2026-10-21)**. The owner explicitly accepted all six ADRs, C01–C07 and the final M0 PASS report. This is an architecture/documentation sign-off ONLY, not approval to merge PR #1 or launch T001.
+- **Overall M0:** **CLOSED / FORMALLY ACCEPTED BY PRODUCT OWNER (2026-10-21)**. The owner explicitly accepted all six ADRs, C01–C07 and the final M0 PASS report. This architecture/documentation sign-off was followed by **separate T001 authorization and separate owner-approved merger of PR #1 into `main`**; neither action approves T001 code acceptance or merge.
 - **Review date:** 2026-10-21
-- **Repository / PR:** [SharpHarness/SharpHarness PR #1](https://github.com/SharpHarness/SharpHarness/pull/1), branch `docs/architecture-v0.1` (OPEN, not merged at review).
+- **Repository / PR:** [SharpHarness/SharpHarness PR #1](https://github.com/SharpHarness/SharpHarness/pull/1), **Merged into `main`** at `7534fb60536b3b0e07e0b9ffeae06c68a63843b9` following product-owner approval (the branch was Open at the time of the original static audit).
 - **Scope limitation:** documentation design audit only. There is no production implementation or executed cross-platform/build/runtime/crash/security test evidence to pass.
 
 ## 1. Evidence and approach
@@ -47,7 +47,7 @@ No normative contradiction requiring reopening any ADR or owner-approved C01–C
 
 | Item | Owner/implementation gate |
 | --- | --- |
-| T001 .NET 10 skeleton | **BLOCKED** until separate product-owner approval of T001 and implementation handoff. T001 may create only solution/projects/CI/minimal tests; no Agent Loop, public runtime, SQLite code or mutating tools. |
+| T001 .NET 10 skeleton | **APPROVED FOR IMPLEMENTATION (2026-10-21)** as a separate owner decision. Only solution/projects/CI/minimal tests allowed; no Agent Loop, public runtime, SQLite code or mutating tools. Independent implementation PR and three-platform CI acceptance still pending. |
 | Compile-ready public C# APIs and DTOs | Design review before relevant **M2** public contract implementation and NuGet publication. |
 | SQLite schema, atomic transition API, locking, backup, migrations, crash tests and native packaging | Design + implementation acceptance during **M3**; tests not yet executed. |
 | CLI permission defaults, filesystem TOCTOU/path scope, Shell/process tree, trust, task grants | Explicit policy/security contract before **M3** tools ship. |
@@ -60,7 +60,7 @@ No normative contradiction requiring reopening any ADR or owner-approved C01–C
 - **Passed now:** owner decision-status audit, document link validation, consistency review of approved behavioral contracts, test ID continuity, stage/task boundary inspection.
 - **NOT VERIFIED:** `dotnet restore/build/test`, Windows/Linux/macOS CI, SQLite WAL/FULL runtime, crash/Unknown behavior, actual process-tree cleanup, sandbox guarantees, binary public API compatibility, Native AOT.
 - Test cases `RT-001..RT-057` and `CT-001..CT-032` are **acceptance plans** for later implementation stages. A passing static document audit is not evidence that any listed behavior has been implemented.
-- T001 remains marked BLOCKED in `docs/tasks/T001-bootstrap.md` and `AGENTS.md` still forbids development without approved tasks.
+- At the original M0 static audit T001 was BLOCKED. The owner subsequently authorized scoped T001; [the current task brief](../tasks/T001-bootstrap.md) and `AGENTS.md` now permit only that task, with no executed code/CI acceptance evidence.
 
 ## 6. Final reviewer determination and product-owner sign-off
 
@@ -68,4 +68,4 @@ No normative contradiction requiring reopening any ADR or owner-approved C01–C
 
 **M0 Architecture v0.1: PASS and FORMALLY CLOSED by the product owner's explicit sign-off on 2026-10-21.** No remaining M0-level normative contradictions or incomplete owner decisions were found. This does **not** freeze unreviewed C# API signatures or imply that tests and implementation are passing.
 
-**Owner-approved M0 scope boundary (as signed off):** PR #1 remains **OPEN**, never auto-merge into `main`; no implementation without separate task-specific authorization. **Post-sign-off update, 2026-10-21:** the owner has since separately **approved T001 v0.1 for M1 scaffold implementation**, with constraints and acceptance defined in [T001 review](t001-readiness-review.md) and [task brief](../tasks/T001-bootstrap.md). This later task authorization is not T001 completion/acceptance and does not authorize merging PR #1, runtime features or other implementation tasks.
+**Chronological governance record:** the original M0 sign-off explicitly did not authorize merging PR #1 or T001. **Subsequent explicit owner decisions on 2026-10-21** separately authorized T001 v0.1 and merging PR #1, now merged into `main`. The approved implementation branch is `feat/t001-dotnet10-bootstrap`, tracking latest `main`. The constraints and T001-A01..A08 checks are recorded in [T001 review](t001-readiness-review.md) and [task brief](../tasks/T001-bootstrap.md). This is **not** T001 completion/acceptance and does not authorize auto-merging its implementation PR, runtime features or other tasks.
