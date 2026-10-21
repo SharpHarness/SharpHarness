@@ -1,6 +1,6 @@
 # M0-B01: Runtime Public-Contract Decisions v0.1
 
-- **Status:** **Accepted (M0 behavioral contract, C01–C07)**; final overall M0 owner sign-off is a separate gate.
+- **Status:** **Accepted / M0 formally closed (2026-10-21)**; behavior decisions C01–C07 are the owner-approved v0.1 architecture baseline. Exact public C# signatures remain Draft.
 - **Created:** 2026-10-20
 - **Scope:** observable runtime protocol and guarantees required for the M0 architecture sign-off; not production C# source or a frozen NuGet API.
 - **Authority:** ADR-0001..ADR-0006 and C01–C07 have been explicitly Accepted by the product owner. This document governs observable M0 runtime semantics, not yet compile-ready public C# signatures.
@@ -210,4 +210,4 @@ Must test distinct ID correlation; altered arguments/tool version/effective scop
 
 ## 4. Review workflow
 
-The product owner has explicitly Accepted C01–C07. Their observable semantic guarantees are now approved as the M0-B01 behavioral contract, while implementation-specific C# signatures, SQL schema and CLI policies remain deferred. The M0-B01 final documentation audit has been completed with **PASS / Resolved**, recorded in the linked M0 review report. The overall M0 baseline is ready for **separate explicit owner sign-off**. M1/T001 implementation still needs a separate explicit owner authorization.
+The product owner has explicitly Accepted C01–C07. Their observable semantic guarantees are now approved as the M0-B01 behavioral contract, while implementation-specific C# signatures, SQL schema and CLI policies remain deferred. The M0-B01 final documentation audit has been completed with **PASS / Resolved**, recorded in the linked M0 review report. The product owner explicitly signed off and **CLOSED M0 on 2026-10-21**. M1/T001 implementation still requires a **separate** explicit authorization; PR #1 remains Open and unmerged.

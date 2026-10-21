@@ -2,7 +2,7 @@
 
 - **Review disposition:** **PASS (architecture documentation / behavioral-contract scope)**
 - **M0-B01:** **RESOLVED**; owner-approved C01–C07 supply the M0-level observable protocol and safety semantics.
-- **Overall M0:** **READY FOR FORMAL PRODUCT-OWNER SIGN-OFF**; this reviewer recommendation is not itself an unrequested owner sign-off, PR merge, or T001 implementation authorization.
+- **Overall M0:** **CLOSED / FORMALLY ACCEPTED BY PRODUCT OWNER (2026-10-21)**. The owner explicitly accepted all six ADRs, C01–C07 and the final M0 PASS report. This is an architecture/documentation sign-off ONLY, not approval to merge PR #1 or launch T001.
 - **Review date:** 2026-10-21
 - **Repository / PR:** [SharpHarness/SharpHarness PR #1](https://github.com/SharpHarness/SharpHarness/pull/1), branch `docs/architecture-v0.1` (OPEN, not merged at review).
 - **Scope limitation:** documentation design audit only. There is no production implementation or executed cross-platform/build/runtime/crash/security test evidence to pass.
@@ -62,10 +62,10 @@ No normative contradiction requiring reopening any ADR or owner-approved C01–C
 - Test cases `RT-001..RT-057` and `CT-001..CT-032` are **acceptance plans** for later implementation stages. A passing static document audit is not evidence that any listed behavior has been implemented.
 - T001 remains marked BLOCKED in `docs/tasks/T001-bootstrap.md` and `AGENTS.md` still forbids development without approved tasks.
 
-## 6. Final reviewer determination
+## 6. Final reviewer determination and product-owner sign-off
 
 **M0-B01: PASS / RESOLVED.**
 
-**M0 Architecture v0.1: PASS as a design/documentation baseline; may be formally closed once the product owner explicitly signs off the completed M0 review.** No remaining M0-level normative contradictions or incomplete owner decisions were found. This does **not** freeze unreviewed C# API signatures or imply that tests and implementation are passing.
+**M0 Architecture v0.1: PASS and FORMALLY CLOSED by the product owner's explicit sign-off on 2026-10-21.** No remaining M0-level normative contradictions or incomplete owner decisions were found. This does **not** freeze unreviewed C# API signatures or imply that tests and implementation are passing.
 
-**Do not auto-merge PR #1, do not mark T001 approved, and do not start any coding.** After owner M0 sign-off, separately review/approve T001 implementation scope and CI/test acceptance, then authorize a Coding Agent task. PR merge remains a distinct explicitly approved action.
+**Owner-approved scope boundary:** keep PR #1 **OPEN**, do not merge to `main`, and do not start T001 or other implementation without a separate task-specific authorization. A [T001 readiness-only review](t001-readiness-review.md) may refine proposed scope/deliverables/acceptance, but its existence is not implementation approval. PR merge is a separate, explicitly owner-approved action.

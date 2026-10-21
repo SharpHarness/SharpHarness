@@ -1,7 +1,7 @@
 # Instructions for Coding Agents
 
 **Repository:** SharpHarness/SharpHarness  
-**Phase:** architecture specification, **implementation NOT yet approved**.  
+**Phase:** M0 Architecture v0.1 formally closed and owner-accepted on 2026-10-21; **T001 and all implementation remain NOT approved**.  
 **Authority:** product owner approves architecture and releases; architecture/review agent authors specifications, independently reviews and accepts; coding agents implement and fix code.
 
 ## Mandatory operating rules
@@ -15,7 +15,7 @@
 7. **Use .NET/C# for official runtime components.** Avoid Node.js, Python or Rust runtime dependencies. External process calls to user tooling (git, compilers, shells) are acceptable when controlled and documented.
 8. **Test, don't claim:** provide reproducible `dotnet build` / `dotnet test` evidence when relevant; explicitly list OS matrix and untested cases. Never claim unexecuted tests passed.
 9. **Safe repository behavior:** no destructive Git commands, secret commits, force push, branch deletion, or bypassing review without explicit product-owner approval.
-10. **Keep public contracts small and deliberate:** cancellation, concurrency, versioning, error semantics and cross-platform behavior must be specified. Treat all v0.1 types as proposals until approval.
+10. **Keep public contracts small and deliberate:** ADR-0001..0006 and M0 behavior decisions C01..C07 are accepted; their observable semantics are mandatory. Exact C# public API types/signatures, DTOs, package metadata and phase-specific implementation contracts remain unapproved until separately reviewed.
 
 ## Pull request contract
 

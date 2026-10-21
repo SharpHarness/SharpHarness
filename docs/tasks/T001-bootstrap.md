@@ -1,6 +1,6 @@
 # Task T001: Initialize the .NET solution (Coding Agent handoff)
 
-**Status: BLOCKED pending approval of Architecture v0.1 and this task.**  
+**Status: BLOCKED pending separate product-owner approval of T001.** Architecture v0.1 / M0 was formally accepted and closed on 2026-10-21, but **T001 is NOT authorized**. See [T001 readiness review](../review/t001-readiness-review.md).  
 **Owner:** Product owner (approval) / Architecture-review agent (specification, test and acceptance) / Coding Agent (implementation).
 
 ## Objective

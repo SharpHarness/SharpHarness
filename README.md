@@ -2,9 +2,9 @@
 
 **A pure C# cross-platform AI Agent Harness for .NET.**
 
-SharpHarness aims to deliver an embeddable, model-agnostic Agent Runtime and a separately composed Coding Agent. The project adopts a **thin kernel + replaceable standard runtime services** architecture. The repository is currently in the **architecture specification phase**: no runtime implementation is approved yet.
+SharpHarness aims to deliver an embeddable, model-agnostic Agent Runtime and a separately composed Coding Agent. The project adopts a **thin kernel + replaceable standard runtime services** architecture. The **M0 architecture specification is formally accepted and closed** (2026-10-21). No runtime implementation task has been approved yet.
 
-> 当前阶段：架构设计与评审。本文档集是实现工作的输入，不代表已有功能；在方案评审通过前，不得将设计草案视为稳定的公共 API。
+> 当前阶段：**M0 架构设计与行为契约已正式验收关闭**。代码实现尚未获得任务授权，文档不代表已有运行功能；具体 C# API 签名仍待 M2 专项评审。
 
 ## Project scope / 项目范围
 
@@ -24,8 +24,8 @@ Start at [docs/README.md](docs/README.md). Architecture proposals, ADRs, public 
 - [x] Product direction: General Agent Core + Coding Agent.
 - [x] Architecture style: Thin kernel + composable standard services.
 - [x] Complete independent M0-B01 architectural documentation review (PASS).
-- [ ] Obtain explicit product-owner final sign-off to formally close M0 architecture v0.1.
-- [ ] Approve bootstrap implementation task.
+- [x] Obtain explicit product-owner final sign-off and formally close M0 architecture v0.1 (2026-10-21).
+- [ ] Separately approve bootstrap implementation task T001 (currently BLOCKED).
 - [ ] Implement, test and accept the first code change.
 
 **License:** not yet selected. No license grant should be inferred from public visibility.
