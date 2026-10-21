@@ -1,13 +1,13 @@
 # Instructions for Coding Agents
 
 **Repository:** SharpHarness/SharpHarness  
-**Phase:** M0 Architecture v0.1 formally closed and owner-accepted on 2026-10-21; **T001 and all implementation remain NOT approved**.  
+**Phase:** M0 Architecture v0.1 owner-accepted and closed on 2026-10-21; **T001 v0.1 approved ONLY for the M1 .NET 10 solution scaffold, minimal tests and three-OS CI** (2026-10-21). All M2/M3 feature implementations remain **NOT APPROVED**.  
 **Authority:** product owner approves architecture and releases; architecture/review agent authors specifications, independently reviews and accepts; coding agents implement and fix code.
 
 ## Mandatory operating rules
 
 1. **Read before editing:** read `docs/README.md`, applicable architecture/ADR/contract documents, and the assigned task brief. Quote the task ID and version in your PR.
-2. **Do not start coding without an approved task.** A proposed architecture document or example signature is not permission to implement it.
+2. **Code only against an explicitly approved task.** T001 v0.1 alone is now authorized: create the .NET 10 skeleton/minimal test/CI in a separate implementation branch and PR. Never infer permission for runtime APIs, Agent Loop, tools, model providers, SQLite implementation, or any M2/M3 feature from T001 or an accepted ADR.
 3. **No invented APIs or behavior.** If a contract is missing or contradictory, ask for a design decision; do not silently fill in business semantics.
 4. **Respect dependency boundaries:** Core depends only on Abstractions and base .NET facilities; concrete providers, storage, UI, Coding tools depend inward. Resolve dependencies at composition root.
 5. **No unrelated refactoring, package additions, renaming or changes outside allowed task scope.** Propose an ADR change for architectural deviation.
@@ -29,4 +29,4 @@ Each implementation PR must include: task ID; specification/ADR references; chan
 - Model/Tool content is treated as untrusted; logs and telemetry redact credentials and sensitive data.
 - Deterministic fake-model tests cover success, tool loops, denial, cancellation and failure; CI later covers Windows/Linux/macOS.
 
-**Source of truth:** accepted ADRs > approved versioned specifications > approved task acceptance criteria > implementation details. Discrepancies require reviewer escalation, not silent interpretation.
+**Source of truth:** accepted ADRs > approved versioned specifications > approved task acceptance criteria > implementation details. **T001 is approved to begin work, not approved as a finished implementation; tests and independent PR review are still required.** Discrepancies require reviewer escalation, not silent interpretation.

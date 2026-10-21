@@ -1,14 +1,14 @@
 # T001 Implementation Readiness Review · v0.1
 
-- **Status:** **REVIEW COMPLETE / READY FOR PRODUCT-OWNER TASK DECISION**, NOT IMPLEMENTATION APPROVAL
+- **Status:** **REVIEW COMPLETE; T001 APPROVED FOR IMPLEMENTATION BY PRODUCT OWNER (2026-10-21)**. Work/results remain unverified and require independent acceptance.
 - **Review date:** 2026-10-21
 - **Task:** [T001 · Initialize the .NET solution](../tasks/T001-bootstrap.md)
-- **Authority:** M0 architecture v0.1 formally Closed/Accepted by product owner on 2026-10-21; T001 remains **BLOCKED until separately approved**.
+- **Authority:** M0 architecture v0.1 formally Closed/Accepted by product owner on 2026-10-21; T001 separately approved for strictly scoped implementation on 2026-10-21, **not yet accepted as completed work**.
 - **Scope of this review:** proposed implementation scope, allowed files, deliverables, dependency restrictions, CI and acceptance criteria only. **No code, package installation, workflow or implementation PR is created by this review.**
 
 ## 1. Reviewer verdict and rationale
 
-**Ready for task-specific product-owner decision**, provided the approval explicitly incorporates the clarifications below. The original T001 is appropriately restricted to .NET 10 project scaffolding and CI, compatible with accepted ADR-0001..0006 and C01..C07. It must not turn into a premature implementation of the Agent Core or SQLite.
+**Product-owner task approval received (2026-10-21)** for the scoped T001 skeleton and accompanying implementation constraints below. The original T001 is appropriately restricted to .NET 10 project scaffolding and CI, compatible with accepted ADR-0001..0006 and C01..C07. It must not turn into a premature implementation of the Agent Core or SQLite.
 
 A green M0 design report is not a green runtime or CI. T001 acceptance remains **Not Verified** until a Coding Agent implements an *approved* T001, produces its own PR, and shows actual passing three-OS CI and reviewer-checked project boundaries.
 
@@ -41,17 +41,17 @@ The exact reference graph may be a minimal subset of allowed edges: **don't add 
 
 Proposed minimal target: `TargetFramework=net10.0` on all platform-neutral projects; consistent SDK selection and `Nullable`/language settings as justified. Do not introduce Windows-only target frameworks that make the three-OS skeleton unbuildable.
 
-## 4. Three clarifications required in the eventual T001 approval
+## 4. Three implementation clarifications included in approved T001 handoff
 
-**T001-D01 · Branch/base strategy while architecture PR #1 remains OPEN**
+**T001-D01 · Branch/base strategy while architecture PR #1 remains OPEN (approved handoff choice)**
 
 Do not code directly on `main` or in this architecture documentation PR. **Recommendation:** after separate T001 approval, create a new implementation branch **from** `docs/architecture-v0.1` and open a separate T001 PR targeting that branch until the owner separately authorizes merging the architecture baseline. This avoids building off a `main` that does not yet contain approved architecture files. Coding Agent must record the base commit and not merge PR #1. An alternative owner-approved branch arrangement is acceptable if the signed-off architecture remains available.
 
-**T001-D02 · .NET 10 SDK/test-framework selection**
+**T001-D02 · .NET 10 SDK/test-framework selection (delegated bounded implementation choice)**
 
 Pin an explicit supported .NET 10 SDK release/feature band **at task execution** using `global.json` where applicable, and document `rollForward`. Avoid speculative version numbers in this architecture report. Pick one mainstream deterministic C# test framework (e.g. MSTest or xUnit) with compatible versions; no runtime Agent dependency. If the owner delegates exact patch/test-framework selection, the Coding Agent must record the choice, references and evidence in the T001 PR. Do not silently add unrelated analyzers, provider SDKs or storage packages.
 
-**T001-D03 · Measurable three-platform acceptance**
+**T001-D03 · Measurable three-platform acceptance (mandatory)**
 
 Acceptance requires a single workflow commit/job matrix with `ubuntu-latest`, `windows-latest`, `macos-latest`; actual successful restore/build/test; a non-vacuous assertion (prefer a structural boundary rule or build artifact check, not just `Assert.True(true)`); test discovery visibly identifies the test; explicit SDK version/log and dependency graph summary. Use least-privilege `GITHUB_TOKEN` permissions for CI. Stable/pinned GitHub actions versions are required; avoid unreviewed script downloads or external credentials. A matrix entry with a skipped/failed test is **not** a PASS.
 
@@ -80,10 +80,10 @@ Review the diff against the T001 allowlist, project dependency graph and full CI
 - A CI matrix tests OS images/runners, not every CPU architecture; `macos-latest` alone does not prove both Intel and Apple Silicon.
 - README can be edited minimally for build instructions **only when T001 is actually authorized**. No user-facing claim that SharpHarness SDK is functional at M1.
 
-## 7. Owner decision gate (NOT YET TAKEN)
+## 7. Owner implementation authorization (RECORDED 2026-10-21)
 
-**Recommended T001 authorization wording for later review:**
+**Authorized scope for Coding Agent handoff:**
 
 > Approve T001 to create only the .NET 10 solution skeleton, seven minimal project files, deterministic test infrastructure and three-OS GitHub Actions CI, using the signed-off M0 architecture branch as base and a separate T001 PR. Permit an explicitly documented SDK/test-framework selection and minimal build README update. Forbid implementation of public Agent runtime APIs, SQLite and Coding tools. Require T001-A01..A08 acceptance evidence and independent review; do not merge PR #1 or any implementation PR without separate approval.
 
-**Current state:** T001 remains **BLOCKED**. This review does not approve a coding task, create a coding branch, run a build, or merge any PR.
+**Current state:** T001 is **APPROVED FOR IMPLEMENTATION** only. No code/test/CI is claimed to have been completed or accepted by the task approval; separate PR, code review and T001-A01..A08 verification remain required. PR #1 remains open/unmerged.

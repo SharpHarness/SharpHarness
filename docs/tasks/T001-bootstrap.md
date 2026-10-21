@@ -1,7 +1,15 @@
 # Task T001: Initialize the .NET solution (Coding Agent handoff)
 
-**Status: BLOCKED pending separate product-owner approval of T001.** Architecture v0.1 / M0 was formally accepted and closed on 2026-10-21, but **T001 is NOT authorized**. See [T001 readiness review](../review/t001-readiness-review.md).  
+**Status: APPROVED FOR IMPLEMENTATION (2026-10-21, product owner).** M0 architecture v0.1 was formally accepted and closed on 2026-10-21. T001 is **authorized as a strictly scoped M1 .NET 10 scaffold task only**; coding is **not yet complete or accepted**. See [T001 readiness review](../review/t001-readiness-review.md).  
 **Owner:** Product owner (approval) / Architecture-review agent (specification, test and acceptance) / Coding Agent (implementation).
+
+## Approved implementation handoff constraints (2026-10-21)
+
+- **Task version:** T001 v0.1, approved by product owner. Authority extends **only** to the allowed files/scaffold scope and acceptance checks in this brief and the [readiness review](../review/t001-readiness-review.md).
+- **Branching (T001-D01):** Create/use a separate T001 implementation branch based on the signed-off `docs/architecture-v0.1` branch. Implement via its own T001 PR targeting the architecture branch while PR #1 remains Open. Do **not** implement directly on `main`, merge PR #1, or change the M0 baseline as part of T001.
+- **SDK/test framework (T001-D02):** Coding Agent may choose a supported .NET 10 SDK feature band/patch plus documented `global.json` rollForward and one mainstream compatible C# unit test framework. Record exact versions and rationale in the T001 PR; avoid unrelated dependencies.
+- **CI acceptance (T001-D03):** Execute restore/build/test on `ubuntu-latest`, `windows-latest` and `macos-latest` at the same commit. Show genuine discovered-and-passing deterministic test(s), not zero-tests success. Provide complete CI job links.
+- **Review checklist:** satisfy T001-A01 through T001-A08 in the readiness review. This approval authorizes **coding work only**, not passing acceptance or merging any PR.
 
 ## Objective
 
@@ -30,6 +38,8 @@ Create a clean .NET 10 Monorepo that builds and tests on Windows, Linux and macO
 4. PR description with command outputs, platform CI links and architecture boundary self-check.
 
 ## Acceptance / rejection
+
+The independent reviewer MUST validate all eight T001-A01–T001-A08 checks. Local `dotnet restore` / `dotnet build` / `dotnet test` results and all three OS CI jobs are **Not Verified until actually run**. An approved task is not a passed implementation.
 
 - Accept only when CI is green on 3 OS and reviewer confirms a correct dependency graph and no extra business implementation.
 - Request changes if any project graph is cyclic, `Core` depends on `Coding`, test suite not discovered, or CI lacks evidence.
