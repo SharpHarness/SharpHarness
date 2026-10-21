@@ -11,7 +11,7 @@
 
 - Inspected the GitHub review-branch tree of **21 Markdown documents**: root governance/README, documentation index, all six ADRs, five architecture-area documents, both contract specifications, review checklist, this review report, T001 task brief and test strategy.
 - Re-read all six ADRs and seven contract decision statuses. All **ADR-0001..0006 = Accepted** and **C01..C07 = Accepted** by the product owner.
-- Statically validated **27 relative Markdown file references** across the documentation corpus against branch file paths: **0 missing file targets**.
+- Statically validated **28 relative Markdown file references** across the documentation corpus against branch file paths: **0 missing file targets**.
 - Verified unique, increasing test-plan identifiers **RT-001..RT-057 (57 requirements)** and **CT-001..CT-032 (32 contract acceptance scenarios)**. These are *documented requirements*, **not executed or passing unit/integration tests**.
 - Cross-checked observable behaviors, actor/storage ordering, approved tool security gates, compatibility and stage boundaries against the accepted decision records and T001 scope.
 
