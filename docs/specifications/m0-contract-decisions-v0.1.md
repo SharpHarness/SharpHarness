@@ -108,13 +108,25 @@ Committed *intent* does not prove actual dispatch or completion. If the journal 
 
 Must test distinct ID correlation; altered arguments/tool version/effective scope invalidating approval; expiry, duplicate or late `ResolveApproval`; interruption between approval, commit and dispatch; stable InvocationId after restart; and `Unknown` effects never automatically replay. Exact C# DTO names, tool fingerprint encoding, time source, effective-scope canonicalization and default permission rules are deliberately deferred to implementation-contract review.
 
-## C06 · Session disposal and cancellation — OWNER DECISION REQUIRED
+## C06 · Session disposal and cancellation — ACCEPTED (product owner, 2026-10-21)
 
-**Recommended default:** disposing a Session requests an explicit orderly shutdown: stop admitting new commands, request cancellation of its active Turn, allow a configurable **bounded** graceful cleanup, and only then release the host's session ownership and resources as far as safe. Disposal cannot claim all external effects have stopped unless verified. If subprocesses may still be running or commit status is uncertain, report/record an observable `Unknown`/incomplete-shutdown outcome when possible and never silently mark success. Dispose of an event subscriber separately without affecting Session lifetime.
+**Approved resolution C06-A:** Session `DisposeAsync` defaults to **Cancel + Bounded Cleanup**, **not** implicit Detach or unbounded Drain. Stop admitting new ordinary Commands or starting new tools, request cancellation of the active Turn, perform bounded cleanup of controlled model/tool/storage resources, and report the actual outcome. **Release exclusive Session control only when the previous execution has been safely stopped and ownership can be released.** If operations may still be running or cleanup cannot be verified, report `ShutdownIncomplete`, quarantine the Session, and prevent an uncoordinated `OpenSession` that could create a conflicting Actor. Completed execution with unresolved *past* side-effect outcome retains `Unknown` for reconciliation, but does not necessarily imply a live execution that must remain quarantined.
 
-Reject the alternative of `Detach` as the implicit default because it can continue modifying files after the caller believes the session ended. Reject unbounded synchronous waiting because it can leave the CLI stuck forever. A future explicit detach/continue-running mode requires a separately governed host/runtime lifecycle and durable owner.
+### Approved shutdown state and ownership semantics
 
-**Review question C06-A:** Approve **Cancel + bounded cleanup** as default, with explicit error/uncertain side-effect indication instead of silent detach? **Recommendation:** yes.
+1. On disposal, the Actor transitions into a Closing/Stopping lifecycle phase: **no new normal Commands, new Turns, approvals initiating execution, or fresh tool dispatch**. In-flight C04 storage completions are correlated and serialized but must not resurrect operations. Necessary internal cleanup and durable terminal facts may still be recorded.
+2. Request cancellation of the active Turn and any governed operations. Wait only for a **configurable bounded** grace period; use controlled Executor cleanup/termination best efforts for subprocesses. Do not claim all external effects cease merely because a CancellationToken was signaled or a timeout elapsed.
+3. Suggested **observable shutdown outcome semantics**, **not yet final public enum/API names**:
+   - `Closed`: controlled operations have ended and required cleanup/ownership-release preconditions are satisfied.
+   - `ClosedWithUnknownEffects`: no active controlled execution remains, ownership may be safely released, but one or more *historical* tool effects remain `Unknown`; retain them durably for later explicit reconciliation.
+   - `ShutdownIncomplete`: termination/cleanup or the absence of ongoing controlled effects cannot be confirmed, or required ownership release coordination could not be safely completed. Signal the incomplete shutdown; **retain or quarantine ownership** and reject an uncoordinated new controller.
+4. **Distinguish liveness from outcome uncertainty:** `Unknown` side-effect history is not proof that a subprocess is still alive, and confirmed process exit is not proof the operation had no effect. Avoid permanent quarantine for merely historical uncertainty after active execution is verified stopped; do not prematurely reopen while prior work may still execute.
+5. On `ShutdownIncomplete`, quarantine is a protection against duplicate local Runtime control and is not a claim that arbitrary detached OS processes are actually contained by SharpHarness. Safe unquarantine must require a separately defined recovery/termination proof and coordination protocol; `DisposeAsync` failure cannot silently clear ownership. On process restart, durable records and available OS evidence must be reconciled before dispatch; do not assume an in-memory quarantine survives host crashes or grants cross-process locking.
+6. A subscriber's own cancellation/disposal **only ends that subscription**. It cannot implicitly interrupt an active Turn, dispose the control handle, or impact other subscribers. A network client disconnect is not automatically Session disposal unless a separately authorized lifecycle policy explicitly says so.
+7. `InterruptTurn` requests cancellation of the active Turn **without closing the Session**. `DisposeAsync` initiates closure of the controlling Session handle and includes cancellation by default. A future explicit `Detach` or hosted long-running Agent mode needs a separate durable ownership and lifecycle contract; **no implicit Detach** in v0.1.
+8. The exact shutdown result API, configured grace period, process-tree termination strategy, background resource ownership, persistent quarantine format, storage-failure recovery and interprocess coordination are deferred to implementation/task review. No claim of complete OS Sandbox, fully reliable process-tree termination, or unconditional crash-time takeover is implied.
+
+**Accepted test obligations:** verify no new dispatch after Closing, bounded cleanup on hanging processes, accurate Closed vs ClosedWithUnknownEffects vs ShutdownIncomplete reporting, no premature Session control release/reopen while uncontained execution remains possible, safe reopening after verified release with historical Unknown preserved, C04 late commit after disposal not dispatching, and observer cancellation not affecting session control.
 
 ## C07 · Contract versioning and error behavior — RECOMMEND APPROVE
 
@@ -133,7 +145,7 @@ Reject the alternative of `Detach` as the implicit default because it can contin
 | C03 | Durable cursor and multi-subscriber backpressure | FromBeginning / exclusive AfterSequence(n) / LiveOnly; committed facts gap-free; bounded independent broadcast; explicit overflow/reconnect | **Accepted (2026-10-20)** |
 | C04 | Actor ↔ store commit ordering | Actor sole state writer; independently scheduled storage I/O; correlated commit result, revalidate live Turn before dispatch, fail-closed late callbacks | **Accepted (2026-10-20)** |
 | C05 | Approval/tool authorization & failure | stable InvocationId, exact bounded Approval, Actor/C04 revalidation and distinct Succeeded/Failed/Rejected/Cancelled/Unknown results | **Accepted (2026-10-20)** |
-| C06 | Session disposal behavior | Cancel + bounded cleanup; no implicit detach | **Proposed** |
+| C06 | Session disposal behavior | Cancel + bounded cleanup; verified safe ownership release, incomplete-shutdown quarantine, historical Unknown retained | **Accepted (2026-10-21)** |
 | C07 | Versions & errors | structured versioned contracts; fail closed | **Proposed** |
 
 ## 2. Acceptance matrix for contract decisions (design requirements, not run tests)
@@ -163,6 +175,10 @@ Reject the alternative of `Detach` as the implicit default because it can contin
 | CT-021 | ToolCallId/InvocationId/ApprovalId correlation | stable one-logical-action InvocationId survives replay and is distinct from provider ToolCallId and specific ApprovalId |
 | CT-022 | Tool identity/args/scope/expiry changed after approval | revalidation fails closed; executor cannot start with stale or mismatched approval |
 | CT-023 | Tool outcome uncertain after interruption/crash | Unknown preserves possible side effects and cannot trigger automatic retry; Failed/Cancelled not substituted for uncertain effects |
+| CT-024 | Dispose while actor/tool active | Closing blocks new work, cancels Turn, bounded cleanup; no late commit can dispatch tool |
+| CT-025 | ShutdownIncomplete / quarantine | unverified running process means visible incomplete shutdown, Session cannot reopen as a second uncontrolled Actor |
+| CT-026 | Historical Unknown with confirmed stop | ownership can release with historical Unknown effects preserved; no false active-process claim |
+| CT-027 | Dispose subscriber independent of Session | one subscriber disposal does not stop Session/Turn or other subscribers |
 
 **Review evidence:** deterministic fake components for M2; SQLite, subprocess and crash-injection evidence in M3; no tests have run while documents-only.
 
@@ -175,4 +191,4 @@ Reject the alternative of `Detach` as the implicit default because it can contin
 
 ## 4. Review workflow
 
-The product owner decides remaining Proposed C06–C07 or requests changes. C01–C05 were explicitly Accepted on 2026-10-20 and synchronized with the public-contract catalog, Tool/Runtime architecture and test strategy. When all C01–C07 have been approved, synchronize the remaining documents, revise the M0 consistency report, then conduct a second static consistency audit. M0 can be signed off **only after that review**. M1/T001 implementation still needs an explicit separate owner authorization.
+The product owner decides remaining Proposed C07 or requests changes. C01–C06 have been explicitly Accepted and synchronized with the public-contract catalog, Session/Runtime architecture, persistence/recovery and test strategy. When all C01–C07 have been approved, synchronize the remaining documents, revise the M0 consistency report, then conduct a second static consistency audit. M0 can be signed off **only after that review**. M1/T001 implementation still needs an explicit separate owner authorization.

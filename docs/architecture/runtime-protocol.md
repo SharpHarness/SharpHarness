@@ -9,7 +9,7 @@
 - **Turn**：一次用户任务的完整执行，从请求排队到完成/失败/中断。
 - **Step**：ContextBuild、ModelInvocation、ToolInvocation、Compaction 或 Verification 的独立执行单元。
 
-Session 不能等同一个 `ChatAsync` 请求。**C01 已批准**：同一 Runtime 内每个 SessionId 只允许一个控制句柄/一个逻辑 Actor；该 Session 已被控制时第二个 `OpenSession` 必须返回 `SessionAlreadyOpen`，不可隐式共享控制权；多个独立只读事件订阅者可以观察同一个 Session，不获得提交命令或 Dispose 控制句柄的权利。释放控制权后可以按恢复协议重新打开，具体关闭语义待 C06 确认。此处不承诺跨进程或分布式所有权协调。默认每个 Session 同时最多一个活动 Turn；跨 Session 并发运行。**ADR-0002 已批准**：活动 Turn 存在时新的 `StartTurn` 直接返回明确的 `Busy` 拒绝结果，不会创建第二个 Turn，不会隐式排队，也不会自动视为 `SteerTurn`；原活动 Turn 不受影响。
+Session 不能等同一个 `ChatAsync` 请求。**C01 已批准**：同一 Runtime 内每个 SessionId 只允许一个控制句柄/一个逻辑 Actor；该 Session 已被控制时第二个 `OpenSession` 必须返回 `SessionAlreadyOpen`，不可隐式共享控制权；多个独立只读事件订阅者可以观察同一个 Session，不获得提交命令或 Dispose 控制句柄的权利。**C06 已批准**：关闭时默认取消活动 Turn 并有界清理；只有确认旧受控执行安全停止并完成所有权释放条件，才可再次打开。若旧操作仍可能运行或无法确认，需报告 `ShutdownIncomplete` 并隔离控制权，禁止无协调地创建新 Actor；历史副作用虽为 Unknown、但已确认不存在活动执行时，仍可安全释放控制权并在恢复后继续核查效果。此处不承诺跨进程或分布式所有权协调。默认每个 Session 同时最多一个活动 Turn；跨 Session 并发运行。**ADR-0002 已批准**：活动 Turn 存在时新的 `StartTurn` 直接返回明确的 `Busy` 拒绝结果，不会创建第二个 Turn，不会隐式排队，也不会自动视为 `SteerTurn`；原活动 Turn 不受影响。
 
 ## 2. Actor / Mailbox
 
@@ -40,7 +40,16 @@ TurnExecutor 在独立异步执行任务中运行，其步骤结果发回 Actor 
 - 工具业务失败：结构化 `ToolResult` 反馈模型，非必然使 Turn 失败。
 - 授权拒绝：不执行工具，将拒绝事实/结果返回模型。
 - 用户中断：发送取消，等待有界清理，超限明确记录无法确认的执行状态。
+- **C06 Session Dispose：**进入 Closing，拒绝新的普通 Commands 和工具派发，尝试取消活动 Turn 并在配置的有限期限内清理；成功停止后释放控制权，若仅历史副作用未知仍保留 `Unknown`，若仍可能有受控执行则以 `ShutdownIncomplete` 隔离 Session。单独 Dispose 订阅者不会关闭 Session，`InterruptTurn` 也不会释放控制权。未明确授权的 Detach 不允许作为默认关闭行为。
 - 预算触顶：有界结束，显式提示限制原因；禁止死循环。
+
+## 4.1 C06 Session 关闭阶段与隔离规则（已批准）
+
+- Closing/Stopping 生命周期阶段中不再接收普通新命令、开始新的 Turn、审批触发的执行或新的工具派发；必要的内部完成/取消与持久化反馈仍由 Actor 序列化。
+- C04 迟到或重复的 SQLite 结果不能在 Closing 后唤醒 Executor 或修改不该改变的终态；有界清理无法证明操作停止时，不得假装正常关闭。
+- 关闭结果的**候选名称**为 `Closed`、`ClosedWithUnknownEffects` 和 `ShutdownIncomplete`，其重要区别是旧操作是否仍有可能活跃，而不是仅以历史副作用是否 Unknown 来判断。
+- `ShutdownIncomplete` 表示控制权隔离/待协调恢复，防止同一 Runtime 创建第二 Actor；宿主崩溃后需要依据持久记录及可得的 OS 证据重新协调，不能宣称仅靠内存状态实现跨进程互斥。
+- 默认 Dispose 不是 Detach，网络断线及单个订阅者 Dispose 不等于 Session Dispose。具体 API 返回值、进程树控制与清理时限留待后续任务合同。
 
 ## 5. 并发与确定性
 

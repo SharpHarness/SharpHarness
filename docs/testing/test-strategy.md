@@ -64,6 +64,10 @@
 | RT-047 | C05 stale and replayed approvals | Duplicate exact decisions return idempotent outcome; conflicting/late/cancelled decisions cannot authorize wrong invocation or rerun Executor |
 | RT-048 | C05 ToolResult failure taxonomy | Succeeded/Failed/Rejected/Cancelled/Unknown distinct; possible side effect without terminal evidence classified Unknown, no automatic retry |
 | RT-049 | C05 identity across recovery | Restart preserves logical InvocationId and approval binding; no fresh identity to hide previous Unknown state or rerun effect |
+| RT-050 | C06 bounded Dispose and blocked dispatch | Closing stops new commands/turns/tool execution; running model/tool receives cancellation with bounded cleanup; late C04 commit cannot start tool |
+| RT-051 | C06 Session ownership quarantine | Hanging/unverified subprocess yields visible ShutdownIncomplete and blocks uncoordinated OpenSession; explicit reconciliation required before release |
+| RT-052 | C06 historical Unknown after safe stop | ClosedWithUnknownEffects retains past Unknown for recovery but allows safe owner release when no active controlled execution remains |
+| RT-053 | C06 independent subscriber disposal | Disposing/canceling a subscriber never interrupts/disposes Session or other subscribers; InterruptTurn does not close Session |
 
 ## 3. Evidence requirements
 
@@ -73,7 +77,7 @@ For each test: source commit SHA, OS/runtime, exact command, result summary, rel
 
 - **M0 documentation:** architecture and ADR approved, no contradictory lifecycle rules, task boundaries clear.
 - **M1 bootstrap:** correct project graph; build and trivial test suite run on all three OS; no unsupported claims of implementation.
-- **M2 runtime:** RT-001–RT-012 and RT-020–RT-026 and RT-037–RT-049 pass against deterministic Fake Model/Tool/SessionStore; APIs reviewed. Fake/volatile persistence is **test-only**, not permission to run production side-effect tools without the durable SQLite intent barrier established by ADR-0005/0006.
+- **M2 runtime:** RT-001–RT-012 and RT-020–RT-026 and RT-037–RT-053 pass against deterministic Fake Model/Tool/SessionStore; APIs reviewed. Fake/volatile persistence is **test-only**, not permission to run production side-effect tools without the durable SQLite intent barrier established by ADR-0005/0006.
 - **M3 coding:** RT-013–RT-019 and RT-027–RT-036, plus realistic temporary-repository end-to-end scenarios, must pass for the first production-capable SQLite-backed Coding Agent; known security limitations listed. Risk-based CLI defaults must be separately approved before shipping capabilities; policy tests are mandatory without implying a completed OS Sandbox. Process-kill tests do not equal hardware power-loss validation.
 
 Do not merge a change claiming a completed capability without matching test evidence. Manual inspection and CI status are different evidence types and must not be conflated.
