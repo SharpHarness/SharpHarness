@@ -19,14 +19,14 @@
 
 ## Source copyright and license headers
 
-New original C# source files added to SharpHarness MUST start with these exact two comment lines (followed by a blank line):
+For original C# source files created in **2026**, use these exact two comment lines (followed by a blank line):
 
 ```csharp
 // Copyright 2026 SharpHarness
 // SPDX-License-Identifier: Apache-2.0
 ```
 
-The year 2026 is the initial project copyright year and MUST NOT be globally rewritten each January. For new files in later years or material updates, use an accurate year or range if appropriate and approved; do not falsify older file creation years. Do not replace third-party copyright/license notices. A single full Apache-2.0 text is maintained in the repository root `LICENSE`; do not paste the full license into every file. Existing Markdown/configuration files do not require mechanical header insertion. New NuGet package metadata will use `PackageLicenseExpression=Apache-2.0` when packaging is authorized.
+The copyright year is historical information, not a value to increment annually: **do not replace 2026 across all existing files when the calendar changes**. New original source files created in a later year should use that actual year in the first line (for example `// Copyright 2027 SharpHarness`), while retaining the same `// SPDX-License-Identifier: Apache-2.0` line. A year range (such as `2026-2027`) may be used when it accurately represents relevant development or revisions. Do not replace third-party copyright/license notices. A single full Apache-2.0 text is maintained in the repository root `LICENSE`; do not paste the full license into every file. Existing Markdown/configuration files do not require mechanical header insertion. New NuGet package metadata will use `PackageLicenseExpression=Apache-2.0` when packaging is authorized.
 
 ## Pull request contract
 
