@@ -1,0 +1,14 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/SharpHarness.Abstractions/SharpHarness.Abstractions.csproj" />
+    <Project Path="src/SharpHarness.Core/SharpHarness.Core.csproj" />
+    <Project Path="src/SharpHarness.Models/SharpHarness.Models.csproj" />
+    <Project Path="src/SharpHarness.Tools/SharpHarness.Tools.csproj" />
+    <Project Path="src/SharpHarness.Infrastructure/SharpHarness.Infrastructure.csproj" />
+    <Project Path="src/SharpHarness.Coding/SharpHarness.Coding.csproj" />
+    <Project Path="src/SharpHarness.Cli/SharpHarness.Cli.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/SharpHarness.Scaffold.Tests/SharpHarness.Scaffold.Tests.csproj" />
+  </Folder>
+</Solution>
