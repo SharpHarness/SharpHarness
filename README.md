@@ -28,4 +28,8 @@ Start at [docs/README.md](docs/README.md). Architecture proposals, ADRs, public 
 - [x] Separately approve bootstrap implementation task T001, limited to M1 scaffold and CI (2026-10-21).
 - [ ] Implement, independently test, and accept T001's first code change (not yet completed).
 
-**License:** not yet selected. No license grant should be inferred from public visibility.
+## License
+
+SharpHarness is licensed under the [Apache License, Version 2.0](LICENSE).
+
+Copyright 2026 SharpHarness. See the [LICENSE](LICENSE) file for the full terms.

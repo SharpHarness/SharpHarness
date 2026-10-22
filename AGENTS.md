@@ -17,6 +17,17 @@
 9. **Safe repository behavior:** no destructive Git commands, secret commits, force push, branch deletion, or bypassing review without explicit product-owner approval.
 10. **Keep public contracts small and deliberate:** ADR-0001..0006 and M0 behavior decisions C01..C07 are accepted; their observable semantics are mandatory. Exact C# public API types/signatures, DTOs, package metadata and phase-specific implementation contracts remain unapproved until separately reviewed.
 
+## Source copyright and license headers
+
+For original C# source files created in **2026**, use these exact two comment lines (followed by a blank line):
+
+```csharp
+// Copyright 2026 SharpHarness
+// SPDX-License-Identifier: Apache-2.0
+```
+
+The copyright year is historical information, not a value to increment annually: **do not replace 2026 across all existing files when the calendar changes**. New original source files created in a later year should use that actual year in the first line (for example `// Copyright 2027 SharpHarness`), while retaining the same `// SPDX-License-Identifier: Apache-2.0` line. A year range (such as `2026-2027`) may be used when it accurately represents relevant development or revisions. Do not replace third-party copyright/license notices. A single full Apache-2.0 text is maintained in the repository root `LICENSE`; do not paste the full license into every file. Existing Markdown/configuration files do not require mechanical header insertion. New NuGet package metadata will use `PackageLicenseExpression=Apache-2.0` when packaging is authorized.
+
 ## Pull request contract
 
 Each implementation PR must include: task ID; specification/ADR references; change summary; touched projects; test commands and results; security and compatibility impact; deviations/open questions; rollback notes. Reviewer dispositions are **Pass**, **Changes Required**, **Rejected**, or **Not Verified** for uncovered conditions.
