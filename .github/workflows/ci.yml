@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - feat/t001-dotnet10-bootstrap
+  pull_request:
+    branches:
+      - main
+      - feat/t001-dotnet10-bootstrap
+
+permissions:
+  contents: read
+
+jobs:
+  build-test:
+    name: restore-build-test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install .NET SDK from global.json
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+
+      - name: Show SDK
+        run: dotnet --info
+
+      - name: Restore
+        run: dotnet restore SharpHarness.slnx
+
+      - name: Build
+        run: dotnet build SharpHarness.slnx --no-restore --configuration Release
+
+      - name: Test
+        run: dotnet test SharpHarness.slnx --no-build --configuration Release --logger "console;verbosity=detailed"
+
+      - name: Show project graph
+        run: dotnet sln SharpHarness.slnx list
