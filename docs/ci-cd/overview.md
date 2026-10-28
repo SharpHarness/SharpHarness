@@ -95,28 +95,28 @@ agent/task-part-C ─┘
 
 **G001 第一阶段：基础 PR 合并门禁**（由独立实施任务落地；本设计 PR 不修改 Rulesets）。
 
-#### 长期保护目标：\`main\`
+#### 长期保护目标：`main`
 
-1. 为 \`main\` 配置长期 GitHub Branch Ruleset，要求 PR 才能合并，并禁止强制推送和删除。
+1. 为 `main` 配置长期 GitHub Branch Ruleset，要求 PR 才能合并，并禁止强制推送和删除。
 2. 要求以下三个独立的 GitHub Actions 状态检查全部成功：
-   - \`restore-build-test (ubuntu-latest)\`
-   - \`restore-build-test (windows-latest)\`
-   - \`restore-build-test (macos-latest)\`
+   - `restore-build-test (ubuntu-latest)`
+   - `restore-build-test (windows-latest)`
+   - `restore-build-test (macos-latest)`
 3. 启用严格的分支最新性要求：PR 分支必须基于最新目标分支重新满足必需检查。若真实协作成本明显过高，须通过后续决策调整，不在实施时默默改成宽松模式。
 4. 不配置可绕过必需检查的 bypass actor。维护者正常合并仍须满足所有必需检查；仓库管理员仍可能修改规则配置，因此实施后需留存规则设置和实际阻断测试证据。
 
-#### T001 临时集成目标：\`feat/t001-dotnet10-bootstrap\`
+#### T001 临时集成目标：`feat/t001-dotnet10-bootstrap`
 
 1. T001 两级 PR 流程仍然有效，因此在 T001 活动期间，也要对该**精确分支**配置临时规则：必须经 PR 合并、要求相同的三个平台检查成功、禁止强制推送。
-2. 不创建面向所有 \`feat/*\` 的永久保护规则。普通任务默认直接 PR 到 \`main\`；只有任务明确采用集成分支时，才评估是否为该集成目标加临时规则。
-3. 临时集成分支的规则不禁止删除，以便 T001 最终 PR 合并后正常清理。完成 T001 并确认最终 \`main\` 合并后，删除临时分支；如规则配置本身需要清理，则一并移除对应的临时规则。
+2. 不创建面向所有 `feat/*` 的永久保护规则。普通任务默认直接 PR 到 `main`；只有任务明确采用集成分支时，才评估是否为该集成目标加临时规则。
+3. 临时集成分支的规则不禁止删除，以便 T001 最终 PR 合并后正常清理。完成 T001 并确认最终 `main` 合并后，删除临时分支；如规则配置本身需要清理，则一并移除对应的临时规则。
 
 #### 启用顺序与验证要求
 
-- T001 的 \`ci.yml\` 位于 PR 工作分支，尚未合入 \`main\`。启用 Required Checks 前，先在真实 PR 的 Checks 页面核实三个状态检查的**准确名称、来源和同一提交上的结果**。
-- PR #3 当前目标为 \`feat/t001-dotnet10-bootstrap\`，其三平台 Workflow 已在 2026-10-22 的 Run 39742956682 成功；该历史成功不能代替后续提交的重新验证，也不等于 T001 已验收。
+- T001 的 `ci.yml` 位于 PR 工作分支，尚未合入 `main`。启用 Required Checks 前，先在真实 PR 的 Checks 页面核实三个状态检查的**准确名称、来源和同一提交上的结果**。
+- PR #3 当前目标为 `feat/t001-dotnet10-bootstrap`，其三平台 Workflow 已在 2026-10-22 的 Run 39742956682 成功；该历史成功不能代替后续提交的重新验证，也不等于 T001 已验收。
 - 分别验证必需检查**失败、缺失或仍在等待**时，GitHub UI 确实禁止合并。通过测试后保留 PR 链接、提交 SHA 和运行结果作为验收证据。
-- \`main\` 的保护规则是长期规则；T001 集成分支规则只服务于当前任务。不要因为临时分支的 CI 配置而降低 \`main\` 的要求。
+- `main` 的保护规则是长期规则；T001 集成分支规则只服务于当前任务。不要因为临时分支的 CI 配置而降低 `main` 的要求。
 - 第一阶段不强制要求独立 Reviewer 审批或所有 Review Conversation 已解决；这类协作规则应在具备明确审查角色并确认不会造成单维护者死锁后另行决定。**手动合并授权和 CI 必需检查是两道不同的门槛**。
 - 连接器不能代替仓库管理员验证所有经典 Branch Protection 设置。若 API 权限无法读取保护配置，Owner 必须在 GitHub Settings 中检查实际状态；不得把“配置请求已发送”当作“门禁已验收”。
 
@@ -140,12 +140,12 @@ agent/task-part-C ─┘
 
 ### 6.1 版本策略
 
-- SDK 首期采用**统一 SemVer**：\`MAJOR.MINOR.PATCH\`，例如 \`0.1.0\`，必要时使用 \`0.1.0-rc.1\`。
-- 稳定版本 Git Tag 为 \`vX.Y.Z\`；预发行使用 \`vX.Y.Z-rc.N\`。是否发布预发行 NuGet 包和 GitHub Pre-release，须在相应 Release 任务中明确。
-- **不因每次 \`main\` 合并而递增或公开发布版本。** 版本由产品负责人批准，Release 使用已批准标签作为唯一输入（而不是使用会继续移动的 \`main\`）。
-- 正式发布前，使用独立的 GitHub Tag Ruleset 匹配 \`v*\`：只允许明确授权的发行维护者创建正式版本标签，禁止已发行标签被更新或删除。授权维护者创建版本标签本身就是启动对应发行流程的授权动作；不得把普通 PR 权限等同于发布权限。
-- Release Workflow 必须验证标签符合允许的 SemVer 规则，标签指向已经审核并合入 \`main\` 历史的提交，且该标签/版本尚未被用于发布不同内容。不得允许通过移动已发行标签覆盖已有版本。
-- 可以通过受限标签触发 \`release.yml\`，必要时再加 GitHub Environment 审批。正式发布的凭据只在受控 Release Job 中可用；PR 验证不能获取发布凭据。
+- SDK 首期采用**统一 SemVer**：`MAJOR.MINOR.PATCH`，例如 `0.1.0`，必要时使用 `0.1.0-rc.1`。
+- 稳定版本 Git Tag 为 `vX.Y.Z`；预发行使用 `vX.Y.Z-rc.N`。是否发布预发行 NuGet 包和 GitHub Pre-release，须在相应 Release 任务中明确。
+- **不因每次 `main` 合并而递增或公开发布版本。** 版本由产品负责人批准，Release 使用已批准标签作为唯一输入（而不是使用会继续移动的 `main`）。
+- 正式发布前，使用独立的 GitHub Tag Ruleset 匹配 `v*`：只允许明确授权的发行维护者创建正式版本标签，禁止已发行标签被更新或删除。授权维护者创建版本标签本身就是启动对应发行流程的授权动作；不得把普通 PR 权限等同于发布权限。
+- Release Workflow 必须验证标签符合允许的 SemVer 规则，标签指向已经审核并合入 `main` 历史的提交，且该标签/版本尚未被用于发布不同内容。不得允许通过移动已发行标签覆盖已有版本。
+- 可以通过受限标签触发 `release.yml`，必要时再加 GitHub Environment 审批。正式发布的凭据只在受控 Release Job 中可用；PR 验证不能获取发布凭据。
 - NuGet 包版本发布后不能把“同一个版本号重新打包覆盖”作为回滚；失误时按需弃用版本并发补丁版。已发行的 Git 标签应保留为审计记录。
 
 ### 6.2 Release 验证与产物晋级
@@ -242,13 +242,13 @@ TUI 是最终用户运行的应用，**不是将三平台 SDK 构建等同于三
 - [ ] 负责人审查本总体设计，确认默认单级 PR、明确多级例外、`main` 必需门禁、Tag 发版以及分发边界。
 - [ ] 本文档通过独立文档 PR 合入 `main`；**不改动 T001 PR #3，不变更 Actions/Rulesets，也不触发正式发布**。
 
-### 阶段 B：G001 基础质量门禁（优先于 T001 最终合入 \`main\`）
+### 阶段 B：G001 基础质量门禁（优先于 T001 最终合入 `main`）
 
-- [ ] 审视 T001 的 \`ci.yml\` 实际目标 PR 和最新 SHA，确认三个平台 Check 的准确名称、来源、触发条件。
-- [ ] 为长期 \`main\` 配置 Ruleset：PR required、三个 OS 状态检查 required、严格的分支最新性要求、禁止 force push/deletion；不配置允许绕过必需检查的 bypass actor。
-- [ ] 为当前 T001 临时集成分支 \`feat/t001-dotnet10-bootstrap\` 配置精确范围的临时规则：PR required、相同三平台检查 required、禁止 force push；允许在最终任务完成后删除该分支。
+- [ ] 审视 T001 的 `ci.yml` 实际目标 PR 和最新 SHA，确认三个平台 Check 的准确名称、来源、触发条件。
+- [ ] 为长期 `main` 配置 Ruleset：PR required、三个 OS 状态检查 required、严格的分支最新性要求、禁止 force push/deletion；不配置允许绕过必需检查的 bypass actor。
+- [ ] 为当前 T001 临时集成分支 `feat/t001-dotnet10-bootstrap` 配置精确范围的临时规则：PR required、相同三平台检查 required、禁止 force push；允许在最终任务完成后删除该分支。
 - [ ] 使用可撤销的验证 PR，分别核实失败、缺失、pending 的必需检查会阻止合并；保存 GitHub UI、PR、提交 SHA 与 Actions Run 证据。
-- [ ] 完成 T001 最终 PR 合入 \`main\` 并验收后，清理临时集成分支及专属于该分支的规则；不创建永久 \`feat/*\` 规则。
+- [ ] 完成 T001 最终 PR 合入 `main` 并验收后，清理临时集成分支及专属于该分支的规则；不创建永久 `feat/*` 规则。
 - [ ] 复核管理员实际配置与旁路权限。当前连接器不能读取所有经典 Branch Protection 配置；Owner 必须在 GitHub Settings 核实最终生效状态。
 
 ### 阶段 C：独立审查及合并 T001
@@ -265,8 +265,8 @@ TUI 是最终用户运行的应用，**不是将三平台 SDK 构建等同于三
 ### 阶段 E：首次 NuGet 发行
 
 - [ ] 批准首发 NuGet 包列表、版本策略和发行范围；核验 Package IDs、包元数据、依赖版本与 Trusted Publishing。
-- [ ] 配置 Tag Ruleset（例如匹配 \`v*\`），只允许指定发行维护者创建正式版本标签，并防止标签被移动或删除。
-- [ ] 建立受控 \`release.yml\`，验证 Tag 指向已审核的 \`main\` 提交；PR Workflow 不得获得发布凭据。
+- [ ] 配置 Tag Ruleset（例如匹配 `v*`），只允许指定发行维护者创建正式版本标签，并防止标签被移动或删除。
+- [ ] 建立受控 `release.yml`，验证 Tag 指向已审核的 `main` 提交；PR Workflow 不得获得发布凭据。
 - [ ] 测试 NuGet Pack 元数据、OIDC 可信身份、失败报告和不可覆盖版本处理；正式发行仍需单独的版本/渠道授权。
 
 ### 阶段 F：首次 CLI/TUI 多平台发行
@@ -276,8 +276,8 @@ TUI 是最终用户运行的应用，**不是将三平台 SDK 构建等同于三
 
 ## 13. 当前仓库实况（快照，2026-10-28）
 
-- \`main\` 已包含 Apache License 2.0（PR #5 merged）；T001 工程骨架仍未合入 \`main\`。
-- T001 PR #3 仍为 Draft，源 \`cursor/t001-dotnet10-scaffold-64b7\`，目标 \`feat/t001-dotnet10-bootstrap\`，未合并。
+- `main` 已包含 Apache License 2.0（PR #5 merged）；T001 工程骨架仍未合入 `main`。
+- T001 PR #3 仍为 Draft，源 `cursor/t001-dotnet10-scaffold-64b7`，目标 `feat/t001-dotnet10-bootstrap`，未合并。
 - [T001 三平台 CI Run 39742956682](https://github.com/SharpHarness/SharpHarness/actions/runs/39742956682) 于 2026-10-22 成功；这只是该次提交的 CI 证据，不代表 T001 已验收。
 - PR #6（本设计文档）仍为 Open，尚未合并；本轮修订完成后仍需最终审阅和明确合并授权。
 - GitHub Rulesets API 当前返回 0 条规则。经典 Branch Protection 查询因当前连接器权限不足而无法确认；Owner 需在 GitHub Settings 核实其是否存在。
