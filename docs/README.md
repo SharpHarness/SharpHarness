@@ -14,7 +14,7 @@
 6. [持久化与恢复](architecture/persistence-and-recovery.md)：事件日志、副作用。
 7. [M0-B01 契约评审](specifications/m0-contract-decisions-v0.1.md)：C01–C07 已批准；M0-B01 总验收 PASS，M0 总体已正式验收关闭；[现有契约类型目录](specifications/contracts-v0.1.md) 仍为 Draft。
 8. [测试策略](testing/test-strategy.md)、[Review 清单](review/review-checklist.md)。
-9. [CI/CD 与发布总体架构 v0.1](ci-cd/overview.md)：分支、PR 质量门禁、NuGet/TUI 发布设计，**Draft 待批准；尚未实施 Rulesets/Release Actions**。
+9. [CI/CD 与发布总体架构 v0.1](ci-cd/overview.md)：分支、PR 质量门禁、NuGet/TUI 发布设计，**Draft，已完成本轮修订，待最终评审/批准；尚未实施 Rulesets/Release Actions**。
 10. [实施任务 T001](tasks/T001-bootstrap.md)：**Approved for Implementation（2026-10-21）**，仅可实施 M1 工程骨架；[T001 准备评审](review/t001-readiness-review.md) 定义实施约束及 T001-A01～A08 验收；代码尚未验收。
 
 ## 架构决策记录
