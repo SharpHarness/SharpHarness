@@ -25,7 +25,7 @@ SharpHarness 是 Apache-2.0 许可的纯 C# / .NET 10 跨平台 Agent Harness SD
 | CD-02 | **PR-first**：进入 `main` 的代码必须通过 PR 和明确授权；不得借 CI 通过绕开独立验收。 |
 | CD-03 | **Single-PR default**：日常任务由任意命名的隔离工作分支直接向 `main` 提 PR。复杂任务可以显式使用临时集成分支及第二级 PR，但不是默认要求。 |
 | CD-04 | **Protect destination**：长期统一保护 `main`，不必逐一保护所有短命 `feat/*`；临时集成分支是否附加保护由任务风险决定，不改变 `main` 必需检查。 |
-| CD-05 | **No release on merge**：PR 合并到 `main` 只触发持续集成；只有维护者批准的版本标签/发布操作才可发起正式 Release。 |
+| CD-05 | **No release on merge/tag push**：PR 合并到 `main` 只触发持续集成；创建或推送版本 Tag 只登记版本标识，不启动正式 Release。只有经批准的 `workflow_dispatch` 手动运行 `release.yml` 才能发起正式 Release。 |
 | CD-06 | **Build then promote**：按一个确定的源码提交和版本构建、验证、记录可追溯的制品，随后才允许上传官方仓库。 |
 | CD-07 | **Least privilege**：PR 验证不能接触发布凭据，发布身份仅授予受控 Release Job。 |
 | CD-08 | **Independent acceptance**：实现者自检、CI 绿灯与独立架构验收是不同概念；禁止自动合并未经负责人批准的 PR。 |
