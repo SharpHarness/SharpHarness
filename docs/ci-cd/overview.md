@@ -151,23 +151,29 @@ agent/task-part-C ─┘
 - 发布维护者创建标签是受控 Release 的启动动作，但不是自动批准所有发行渠道的替代品。创建标签前，必须先有产品负责人批准的版本与发行范围；Release Workflow 仍须验证 SemVer、标签目标提交属于已审核的 `main` 历史，并确认每个目标渠道均已获授权。
 - GitHub Ruleset 的配置本身可由有管理权限的人员修改；必须限制仓库管理权限，并在首次 Release 验收时实测：授权身份可以创建新标签，创建后不能更新或删除该标签。
 - Release Workflow 必须验证标签符合允许的 SemVer 规则，标签指向已经审核并合入 `main` 历史的提交，且该标签/版本尚未被用于发布不同内容。不得允许通过移动已发行标签覆盖已有版本。
-- 可以通过受限标签触发 `release.yml`，必要时再加 GitHub Environment 审批。正式发布的凭据只在受控 Release Job 中可用；PR 验证不能获取发布凭据。
+- 正式 Release **只允许通过 `workflow_dispatch` 手动触发**，不配置 Tag push 自动发布。发起者必须在 GitHub Actions 页面选择受保护的 `main` 分支运行 `release.yml`，并显式输入目标版本标签（例如 `v0.1.0`）。目标 Tag 仅作为待检出、待验证的源码版本，不是 Workflow 的触发器或执行引用。
+- `release.yml` 的首个无凭据校验必须确认运行引用为 `refs/heads/main`，否则立即失败。但不能把这个 YAML 条件单独视为安全边界：还必须将发布凭据限定在受保护的 GitHub Environment 中，并配置该 Environment 只允许来自 `main` 的部署。所有可发布 Job 都必须使用该 Environment；不得把发布凭据放在 Repository/Organization 级别供 PR 或非受信任分支 Workflow 直接读取。
+- 手动触发权限应限制给产品负责人及明确授权的发行维护者。Environment 审批可作为额外门槛，但不能替代手动触发、目标 Tag 验证或受信任的 Workflow 来源。
 - NuGet 包版本发布后不能把“同一个版本号重新打包覆盖”作为回滚；失误时按需弃用版本并发补丁版。已发行的 Git 标签应保留为审计记录。
 
 ### 6.2 Release 验证与产物晋级
 
 ```text
-Owner authorizes version/tag
+Owner approves version + release scope
          |
-  release.yml (trusted tag)
+  manual workflow_dispatch
+  selected ref: main; input: release_tag
          |
-  validate version + tag SHA + ancestry
+  release.yml executes from main
+  assert github.ref == refs/heads/main
          |
-  build / test / pack / native publish (as applicable)
+  validate input Tag + SemVer + SHA
+  confirm target commit is in reviewed main history
          |
-  verify package metadata, archive contents, checksums
+  build / test / pack + verify artifacts
          |
-  release approval / scoped credentials
+  protected release Environment
+  allows main only; scoped credentials here
          |
   nuget.org           GitHub Releases
          |
@@ -213,7 +219,7 @@ TUI 是最终用户运行的应用，**不是将三平台 SDK 构建等同于三
 | --- | --- | --- | --- |
 | `ci.yml` | PR 到 `main` / 明确集成目标；`main` push | 三平台 restore/build/test | T001 PR #3 中已实现并有三 OS 证据；**尚未合入** |
 | `pr-quality.yml`（或合并至 `ci.yml`） | PR | 格式、Analyzer、架构边界和独立审阅 | 规划，G001 后续阶段 |
-| `release.yml` | 受信任版本 Tag（可选受控手动入口） | 验证 Tag、构建、测试、产物验证、发行协调 | 规划，首次发行前 |
+| `release.yml` | 仅 `workflow_dispatch` 手动触发；选择 `main` 运行并输入目标 `release_tag`，不监听 Tag push | 校验目标版本/提交/发行范围，构建、测试、产物验证与发行协调 | 规划，首次发行前 |
 | `publish-nuget.yml`（可作为 Release Job） | 仅由受控 Release 调用 | 发行批准后向 nuget.org 推送 | 规划，首次 SDK 发行前 |
 | `publish-app.yml`（可作为 Release Job） | 仅由受控 Release 调用 | TUI 按 RID 构建、冒烟测试、上传 Releases | 规划，TUI 可发布时 |
 | `nightly.yml` | 定时（可选） | 长期/兼容性/耗时集成测试 | 仅在需要时创建 |
@@ -272,7 +278,8 @@ TUI 是最终用户运行的应用，**不是将三平台 SDK 构建等同于三
 
 - [ ] 批准首发 NuGet 包列表、版本策略和发行范围；核验 Package IDs、包元数据、依赖版本与 Trusted Publishing。
 - [ ] 配置 Tag Ruleset（例如匹配 `v*`），只允许指定发行维护者创建正式版本标签，并防止标签被移动或删除。
-- [ ] 建立受控 `release.yml`，验证 Tag 指向已审核的 `main` 提交；PR Workflow 不得获得发布凭据。
+- [ ] 建立仅支持 `workflow_dispatch` 的受控 `release.yml`：手动选择 `main` 运行，输入目标 `release_tag`，不配置 Tag push 发布触发器；校验 `github.ref == 'refs/heads/main'`、目标 Tag 的 SemVer/SHA/祖先关系及批准的发行范围。
+- [ ] 配置受保护的 GitHub Environment，只允许来自 `main` 的部署；发布凭据仅存于该 Environment，所有发布 Job 必须使用它。验证从非 `main` 分支手动启动时，发布流程会失败且无法访问发布凭据。
 - [ ] 测试 NuGet Pack 元数据、OIDC 可信身份、失败报告和不可覆盖版本处理；正式发行仍需单独的版本/渠道授权。
 
 ### 阶段 F：首次 CLI/TUI 多平台发行
