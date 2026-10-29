@@ -145,13 +145,12 @@ agent/task-part-C ─┘
 - SDK 首期采用**统一 SemVer**：`MAJOR.MINOR.PATCH`，例如 `0.1.0`，必要时使用 `0.1.0-rc.1`。
 - 稳定版本 Git Tag 为 `vX.Y.Z`；预发行使用 `vX.Y.Z-rc.N`。是否发布预发行 NuGet 包和 GitHub Pre-release，须在相应 Release 任务中明确。
 - **不因每次 `main` 合并而递增或公开发布版本。** 版本由产品负责人批准，Release 使用已批准标签作为唯一输入（而不是使用会继续移动的 `main`）。
-- 正式发布前，使用两个作用于同一 `v*` 范围的 GitHub Tag Ruleset，避免创建权限与不可变性规则互相抵消：
-  1. **创建授权规则集**：只启用 `Restrict creations`，仅将明确授权的发行维护者列入此规则集的 bypass 列表。该规则集不得同时承载更新/删除限制，因为其中的 bypass actor 可以绕过同一规则集的其他规则。
-  2. **不可变规则集**：启用 `Restrict updates` 与 `Restrict deletions`，不配置任何 bypass actor。创建授权规则集中的 bypass 权限不应成为绕过此独立规则集的权限。
-- 发布维护者创建标签是受控 Release 的启动动作，但不是自动批准所有发行渠道的替代品。创建标签前，必须先有产品负责人批准的版本与发行范围；Release Workflow 仍须验证 SemVer、标签目标提交属于已审核的 `main` 历史，并确认每个目标渠道均已获授权。
-- GitHub Ruleset 的配置本身可由有管理权限的人员修改；必须限制仓库管理权限，并在首次 Release 验收时实测：授权身份可以创建新标签，创建后不能更新或删除该标签。
-- Release Workflow 必须验证标签符合允许的 SemVer 规则，标签指向已经审核并合入 `main` 历史的提交，且该标签/版本尚未被用于发布不同内容。不得允许通过移动已发行标签覆盖已有版本。
-- 正式 Release **只允许通过 `workflow_dispatch` 手动触发**，不配置 Tag push 自动发布。发起者必须在 GitHub Actions 页面选择受保护的 `main` 分支运行 `release.yml`，并显式输入目标版本标签（例如 `v0.1.0`）。目标 Tag 仅作为待检出、待验证的源码版本，不是 Workflow 的触发器或执行引用。
+- 正式发布前，为 `v*` 配置**一个** GitHub Tag Ruleset，同时启用 `Restrict creations`、`Restrict updates` 与 `Restrict deletions`。将明确授权的发行维护者加入该规则集的 bypass 列表，以允许其创建版本标签。
+- **必须明确接受该单规则集方案的权限边界**：GitHub 的 bypass actor 可以绕过其所属规则集中的所有规则。因此，列入 bypass 的 Owner/发行维护者不仅可以创建标签，也可以绕过更新与删除限制。标签不可变性对这些主体**不是技术强制保证**；规则集只会对不在 bypass 列表中的主体强制执行创建、更新和删除限制。不得在文档或发行说明中声称标签对 bypass actor 绝对不可变。
+- Tag 只是经批准的版本标识，**创建 Tag 不启动 Release**。版本和发行渠道范围须先经产品负责人批准；正式 Release 仅通过 `workflow_dispatch` 手动触发。手动运行时必须选择受保护的 `main` 分支，并显式输入目标标签（例如 `v0.1.0`）。
+- Release Workflow 必须验证标签符合允许的 SemVer 规则、标签解析到的提交属于已审核并合入 `main` 的历史，且版本/标签尚未用于发布不同内容。每次发行都应记录实际发布的 Tag、解析后的 commit SHA、版本和渠道；如果同一版本已发布但 Tag SHA 与记录不一致，必须 Fail Closed，不得通过移动 Tag 覆盖或重新发布该版本。由于 bypass actor 能修改或删除标签，这些发布前/发布后检查属于额外的 Workflow 与操作控制，不能替代对 bypass 权限的限制。
+- 首次 Release 验收时，使用临时测试标签验证：非 bypass 写入者不能创建、更新或删除匹配 `v*` 的标签；bypass actor 能创建标签，并且也能绕过同一规则集的更新/删除限制。测试必须证明这项限制，而不是把它误报成标签不可变。GitHub Ruleset 本身也可由有管理权限的人员修改，因此应限制仓库管理权限。
+- 正式 Release **只允许通过 `workflow_dispatch` 手动触发**，不配置 Tag push 自动发布。发起者必须在 GitHub Actions 页面选择受保护的 `main` 分支运行 `release.yml`，并显式输入目标版本标签；目标 Tag 仅作为待检出、待验证的源码版本，不是 Workflow 的触发器或执行引用。
 - `release.yml` 的首个无凭据校验必须确认运行引用为 `refs/heads/main`，否则立即失败。但不能把这个 YAML 条件单独视为安全边界：还必须将发布凭据限定在受保护的 GitHub Environment 中，并配置该 Environment 只允许来自 `main` 的部署。所有可发布 Job 都必须使用该 Environment；不得把发布凭据放在 Repository/Organization 级别供 PR 或非受信任分支 Workflow 直接读取。
 - 手动触发权限应限制给产品负责人及明确授权的发行维护者。Environment 审批可作为额外门槛，但不能替代手动触发、目标 Tag 验证或受信任的 Workflow 来源。
 - NuGet 包版本发布后不能把“同一个版本号重新打包覆盖”作为回滚；失误时按需弃用版本并发补丁版。已发行的 Git 标签应保留为审计记录。
@@ -277,7 +276,8 @@ TUI 是最终用户运行的应用，**不是将三平台 SDK 构建等同于三
 ### 阶段 E：首次 NuGet 发行
 
 - [ ] 批准首发 NuGet 包列表、版本策略和发行范围；核验 Package IDs、包元数据、依赖版本与 Trusted Publishing。
-- [ ] 配置 Tag Ruleset（例如匹配 `v*`），只允许指定发行维护者创建正式版本标签，并防止标签被移动或删除。
+- [ ] 配置一个匹配 `v*` 的 Tag Ruleset，同时启用 `Restrict creations`、`Restrict updates`、`Restrict deletions`，并将明确授权的发行维护者列入 bypass 列表。
+- [ ] 用临时测试标签验收实际权限：非 bypass 写入者不能创建、更新或删除标签；bypass actor 可以创建标签，也可以绕过同一规则集的更新/删除限制。验收记录必须明确标签不可变性不受该规则集对 bypass actor 的技术强制保证；不得将此结果描述为“所有人都无法移动/删除标签”。确认创建 Tag 本身不会触发 Release。
 - [ ] 建立仅支持 `workflow_dispatch` 的受控 `release.yml`：手动选择 `main` 运行，输入目标 `release_tag`，不配置 Tag push 发布触发器；校验 `github.ref == 'refs/heads/main'`、目标 Tag 的 SemVer/SHA/祖先关系及批准的发行范围。
 - [ ] 配置受保护的 GitHub Environment，只允许来自 `main` 的部署；发布凭据仅存于该 Environment，所有发布 Job 必须使用它。验证从非 `main` 分支手动启动时，发布流程会失败且无法访问发布凭据。
 - [ ] 测试 NuGet Pack 元数据、OIDC 可信身份、失败报告和不可覆盖版本处理；正式发行仍需单独的版本/渠道授权。
