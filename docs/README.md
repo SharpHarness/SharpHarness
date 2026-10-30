@@ -14,7 +14,8 @@
 6. [持久化与恢复](architecture/persistence-and-recovery.md)：事件日志、副作用。
 7. [M0-B01 契约评审](specifications/m0-contract-decisions-v0.1.md)：C01–C07 已批准；M0-B01 总验收 PASS，M0 总体已正式验收关闭；[现有契约类型目录](specifications/contracts-v0.1.md) 仍为 Draft。
 8. [测试策略](testing/test-strategy.md)、[Review 清单](review/review-checklist.md)。
-9. [实施任务 T001](tasks/T001-bootstrap.md)：**Approved for Implementation（2026-10-21）**，仅可实施 M1 工程骨架；[T001 准备评审](review/t001-readiness-review.md) 定义实施约束及 T001-A01～A08 验收；代码尚未验收。
+9. [CI/CD 与发布总体架构 v0.1](ci-cd/overview.md)：分支、PR 质量门禁、NuGet/TUI 发布设计，**Draft，已完成本轮修订，待最终评审/批准；尚未实施 Rulesets/Release Actions**。
+10. [实施任务 T001](tasks/T001-bootstrap.md)：**Approved for Implementation（2026-10-21）**，仅可实施 M1 工程骨架；[T001 准备评审](review/t001-readiness-review.md) 定义实施约束及 T001-A01～A08 验收；代码尚未验收。
 
 ## 架构决策记录
 
@@ -30,6 +31,6 @@
 - **M0 已正式 CLOSED / Accepted（2026-10-21）**：[六项 ADR](adr/0001-thin-kernel.md)、[C01–C07](specifications/m0-contract-decisions-v0.1.md) 和 [M0 Final Review](review/m0-consistency-review.md) 全部签署完成；随后 T001 已单独获准实施，架构 PR #1 亦经另行批准后合并入 `main`。
 - CLI 首版是否默认开启权限审批及本地持久化？建议是。
 - T001 已获得单独实施授权（2026-10-21）；具体交付、三个 OS 的 CI 和 T001-A01～A08 必须在独立实施 PR 中通过审查，尚未运行或验收。
-- 开源许可证尚未确定；公开仓库不等于已授权他人使用/再分发。
+- 开源许可证已确定为 Apache License 2.0，并通过 PR #5 合并到 `main`（2026-10-23 前）；后续原创 C# 源码按 `AGENTS.md` 使用 SharpHarness 版权头与 SPDX 声明。
 
 六项 ADR、七项行为契约及 M0 文档复核均已正式通过，M0 已关闭。**T001 仅工程骨架已批准实施，尚未完成或通过验收；架构 PR #1 已合并到 `main`。Coding Agent 可在自建分支开发，交付 PR 统一以 `feat/t001-dotnet10-bootstrap` 为目标；T001 集成完成后，再由独立 PR 提交 `main` 审批。任何 PR 不自动合并；M2/M3 未授权。**
