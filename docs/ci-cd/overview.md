@@ -259,7 +259,7 @@ TUI 是最终用户运行的应用，**不是将三平台 SDK 构建等同于三
 - [ ] 为长期 `main` 配置 Ruleset：PR required、三个 OS 状态检查 required、严格的分支最新性要求、禁止 force push/deletion；不配置允许绕过必需检查的 bypass actor。
 - [ ] 为当前 T001 临时集成分支 `feat/t001-dotnet10-bootstrap` 配置精确范围的临时规则：PR required、相同三平台检查 required、禁止 force push；允许在最终任务完成后删除该分支。
 - [ ] 使用可撤销的验证 PR，分别核实失败、缺失、pending 的必需检查会阻止合并；保存 GitHub UI、PR、提交 SHA 与 Actions Run 证据。
-
+- 阶段 B 只负责建立和验证质量门禁；T001 临时集成分支及其规则保留到阶段 C，不作为本阶段清理事项。
 - [ ] 复核管理员实际配置与旁路权限。当前连接器不能读取所有经典 Branch Protection 配置；Owner 必须在 GitHub Settings 核实最终生效状态。
 
 ### 阶段 C：独立审查及合并 T001
